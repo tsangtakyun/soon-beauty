@@ -372,3 +372,222 @@
   .fini-feat:nth-child(4) { border-top: 0.5px solid #E0D4D8; border-right: none; }
   .fini-footer { padding: 14px 20px; }
 }
+
+/* ════════════════════════════════════════
+   FINI LOGIN PAGE STYLES
+════════════════════════════════════════ */
+
+.fini-login-page {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+  background: #FAFAF8;
+}
+
+.fini-login-left {
+  display: flex;
+  flex-direction: column;
+  padding: 32px 40px;
+  justify-content: space-between;
+  min-height: 100vh;
+}
+
+.fini-login-logo {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: #1A1218;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.fini-login-logo sup {
+  font-size: 9px;
+  color: #B06070;
+  vertical-align: super;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.fini-login-form-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 360px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 40px 0;
+}
+
+.fini-login-heading { margin-bottom: 32px; }
+
+.fini-login-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 36px;
+  font-weight: 400;
+  color: #1A1218;
+  margin: 0 0 8px;
+  line-height: 1.2;
+}
+
+.fini-login-sub {
+  font-size: 13px;
+  color: #9A7080;
+  margin: 0;
+  font-weight: 300;
+}
+
+.fini-login-tabs {
+  display: flex;
+  border-bottom: 0.5px solid #E0D4D8;
+  margin-bottom: 28px;
+}
+
+.fini-login-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 10px 0;
+  font-size: 13px;
+  font-family: 'Noto Sans TC', sans-serif;
+  color: #B09898;
+  cursor: pointer;
+  border-bottom: 1.5px solid transparent;
+  margin-bottom: -0.5px;
+  transition: all 0.15s;
+  letter-spacing: 0.04em;
+}
+
+.fini-login-tab-active {
+  color: #1A1218;
+  border-bottom-color: #B06070;
+}
+
+.fini-login-form { display: flex; flex-direction: column; gap: 18px; }
+
+.fini-field { display: flex; flex-direction: column; gap: 7px; }
+
+.fini-field-label {
+  font-size: 11px;
+  color: #7A6068;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fini-field-input {
+  width: 100%;
+  padding: 11px 14px;
+  background: #FFFFFF;
+  border: 0.5px solid #D8C8CC;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'Noto Sans TC', sans-serif;
+  color: #1A1218;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.fini-field-input::placeholder { color: #C0ACAC; }
+.fini-field-input:focus { border-color: #B06070; }
+.fini-field-input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.fini-field-pw-wrap { position: relative; }
+.fini-field-pw-wrap .fini-field-input { padding-right: 40px; }
+
+.fini-pw-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #B09898;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.fini-pw-toggle:hover { color: #7A6068; }
+
+.fini-login-error {
+  background: #FDF0F0;
+  border: 0.5px solid #E8C4C4;
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 12px;
+  color: #A04040;
+  line-height: 1.5;
+}
+
+.fini-login-submit {
+  background: #B06070;
+  color: #FDF8F6;
+  border: none;
+  padding: 13px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-family: 'Noto Sans TC', sans-serif;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 4px;
+  transition: opacity 0.15s;
+}
+
+.fini-login-submit:hover:not(:disabled) { opacity: 0.88; }
+.fini-login-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.fini-login-back {
+  display: inline-block;
+  margin-top: 24px;
+  font-size: 12px;
+  color: #B09898;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: color 0.15s;
+}
+
+.fini-login-back:hover { color: #7A6068; }
+
+.fini-login-footer {
+  font-size: 10px;
+  color: #C0ACAC;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+.fini-login-right {
+  position: relative;
+  overflow: hidden;
+}
+
+.fini-login-quote {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 40px 36px;
+}
+
+.fini-login-quote-text {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 22px;
+  font-weight: 400;
+  font-style: italic;
+  color: rgba(253,248,246,0.92);
+  margin: 0;
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .fini-login-page { grid-template-columns: 1fr; }
+  .fini-login-left { min-height: auto; padding: 24px 20px 32px; }
+  .fini-login-right { height: 220px; }
+  .fini-login-form-wrap { padding: 24px 0; }
+}
