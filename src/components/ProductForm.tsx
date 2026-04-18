@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { addMonths, format } from 'date-fns';
+import { zhHK } from 'date-fns/locale';
+import { Check, Pencil } from 'lucide-react';
 import type { Product } from '@/types/database';
 
 type Category = { id: string; name: string; color: string };
@@ -11,18 +14,36 @@ type Props =
   | { mode: 'create'; categories: Category[]; product?: never; initial?: Partial<Product> }
   | { mode: 'edit'; categories: Category[]; product: Product; initial?: never };
 
+type FormMode = 'edit' | 'preview';
+
 const PAO_OPTIONS = [
-  { value: 3, label: '3 個月 (3M)' },
-  { value: 6, label: '6 個月 (6M)' },
-  { value: 9, label: '9 個月 (9M)' },
+  { value: 3,  label: '3 個月 (3M)' },
+  { value: 6,  label: '6 個月 (6M)' },
+  { value: 9,  label: '9 個月 (9M)' },
   { value: 12, label: '12 個月 (12M)' },
   { value: 18, label: '18 個月 (18M)' },
   { value: 24, label: '24 個月 (24M)' },
   { value: 36, label: '36 個月 (36M)' },
 ];
 
+const STATUS_LABELS: Record<string, string> = {
+  unopened: '未開封',
+  in_use: '使用中',
+  finished: '已用完',
+  discarded: '已棄置',
+};
+
+function fmt(date: string) {
+  return format(new Date(date), 'yyyy年M月d日', { locale: zhHK });
+}
+
+function calcEffectiveExpiry(openedDate: string, paoMonths: number): string {
+  return format(addMonths(new Date(openedDate), paoMonths), 'yyyy年M月d日', { locale: zhHK });
+}
+
 export default function ProductForm({ categories, mode, product, initial }: Props) {
   const router = useRouter();
+  const [formMode, setFormMode] = useState<FormMode>('edit');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,22 +51,26 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
 
   const [form, setForm] = useState({
     name: source?.name ?? '',
-    brand: source?.brand ?? '',
+    brand: (source?.brand as string) ?? '',
     category_id: source?.category_id ?? categories[0]?.id ?? '',
     pao_months: source?.pao_months?.toString() ?? '',
-    expiry_date: source?.expiry_date ?? '',
-    opened_date: source?.opened_date ?? '',
+    expiry_date: (source?.expiry_date as string) ?? '',
+    opened_date: (source?.opened_date as string) ?? '',
     status: source?.status ?? 'unopened',
-    location: source?.location ?? '',
-    notes: source?.notes ?? '',
+    location: (source?.location as string) ?? '',
+    notes: (source?.notes as string) ?? '',
   });
 
   function update<K extends keyof typeof form>(key: K, value: typeof form[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleReview(e: React.FormEvent) {
     e.preventDefault();
+    setFormMode('preview');
+  }
+
+  async function handleConfirmSave() {
     setLoading(true);
     setError(null);
 
@@ -76,11 +101,7 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
         .insert(payload)
         .select('id')
         .single();
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        return;
-      }
+      if (error) { setError(error.message); setLoading(false); return; }
       router.push(`/products/${data.id}`);
       router.refresh();
     } else {
@@ -88,18 +109,117 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
         .from('products')
         .update(payload)
         .eq('id', product!.id);
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        return;
-      }
+      if (error) { setError(error.message); setLoading(false); return; }
       router.push(`/products/${product!.id}`);
       router.refresh();
     }
   }
 
+  const selectedCategory = categories.find((c) => c.id === form.category_id);
+  const paoNum = form.pao_months ? parseInt(form.pao_months, 10) : null;
+
+  // ── PREVIEW ──────────────────────────────────────────────────────────────
+  if (formMode === 'preview') {
+    return (
+      <div className="space-y-5 animate-fade-in">
+        {/* Product card preview */}
+        <div
+          className="rounded-md p-5 space-y-4 border border-ink-100"
+          style={{
+            background: selectedCategory?.color
+              ? `linear-gradient(135deg, ${selectedCategory.color}60, white)`
+              : '#FAFAF8',
+          }}
+        >
+          {/* Category + name */}
+          <div className="flex items-start gap-3">
+            <div
+              className="w-12 h-12 rounded flex-shrink-0 flex items-center justify-center font-display text-title text-ink-700"
+              style={{ backgroundColor: selectedCategory?.color ?? '#EEEEEE' }}
+            >
+              {form.name.slice(0, 1)}
+            </div>
+            <div>
+              <div className="text-micro text-ink-500 mb-0.5">
+                {selectedCategory?.name ?? '未分類'}
+              </div>
+              <div className="font-display text-heading text-ink-900 leading-tight">
+                {form.name}
+              </div>
+              {form.brand && (
+                <div className="text-caption text-ink-600">{form.brand}</div>
+              )}
+            </div>
+          </div>
+
+          {/* Key details */}
+          <div className="grid grid-cols-2 gap-3">
+            <PreviewField label="狀態" value={STATUS_LABELS[form.status]} />
+            <PreviewField
+              label="PAO"
+              value={paoNum ? `${paoNum} 個月` : '未知'}
+            />
+            {form.opened_date && (
+              <PreviewField label="開封日" value={fmt(form.opened_date)} />
+            )}
+            {form.expiry_date && (
+              <PreviewField label="包裝到期日" value={fmt(form.expiry_date)} />
+            )}
+            {form.opened_date && paoNum && (
+              <PreviewField
+                label="實際到期日"
+                value={calcEffectiveExpiry(form.opened_date, paoNum)}
+                highlight
+              />
+            )}
+            {form.location && (
+              <PreviewField label="位置" value={form.location} />
+            )}
+          </div>
+
+          {form.notes && (
+            <div className="text-caption text-ink-600 bg-white/60 rounded p-3">
+              📝 {form.notes}
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <p className="text-caption text-red-600">{error}</p>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setFormMode('edit')}
+            disabled={loading}
+            className="btn-secondary flex-1"
+          >
+            <Pencil className="w-4 h-4 mr-2" />
+            返回修改
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmSave}
+            disabled={loading}
+            className="btn-primary flex-1"
+          >
+            <Check className="w-4 h-4 mr-2" />
+            {loading ? '儲緊...' : '確認儲存'}
+          </button>
+        </div>
+
+        <p className="text-micro text-ink-400 text-center">
+          請確認以上資料正確再儲存
+        </p>
+      </div>
+    );
+  }
+
+  // ── EDIT FORM ─────────────────────────────────────────────────────────────
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleReview} className="space-y-4">
       <div>
         <label className="label" htmlFor="name">產品名稱 *</label>
         <input
@@ -109,7 +229,7 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
           value={form.name}
           onChange={(e) => update('name', e.target.value)}
           className="input"
-          placeholder="例如：A.E.S.O.P 橄欖油潔面膏"
+          placeholder="例如：Classic Clean Anti-Dandruff Shampoo"
         />
       </div>
 
@@ -121,7 +241,7 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
           value={form.brand}
           onChange={(e) => update('brand', e.target.value)}
           className="input"
-          placeholder="例如：Aesop"
+          placeholder="例如：head & shoulders"
         />
       </div>
 
@@ -169,7 +289,7 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
           ))}
         </select>
         <p className="text-micro text-ink-500 mt-1">
-          產品包裝上嗰個開蓋icon入面寫住嘅數字
+          產品底部開蓋icon入面寫住嘅月數
         </p>
       </div>
 
@@ -193,9 +313,7 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
           onChange={(e) => update('expiry_date', e.target.value)}
           className="input"
         />
-        <p className="text-micro text-ink-500 mt-1">
-          未開封時效，有寫先填
-        </p>
+        <p className="text-micro text-ink-500 mt-1">未開封時效，有寫先填</p>
       </div>
 
       <div>
@@ -221,7 +339,7 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
         />
       </div>
 
-      {error && <p className="text-caption text-status-expired">{error}</p>}
+      {error && <p className="text-caption text-red-600">{error}</p>}
 
       <div className="flex gap-2 pt-2">
         <button
@@ -232,10 +350,33 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
         >
           取消
         </button>
-        <button type="submit" className="btn-primary flex-1" disabled={loading || !form.name}>
-          {loading ? '儲緊...' : mode === 'create' ? '加入' : '儲存'}
+        <button
+          type="submit"
+          className="btn-primary flex-1"
+          disabled={!form.name}
+        >
+          {mode === 'create' ? '預覽確認 →' : '預覽確認 →'}
         </button>
       </div>
     </form>
+  );
+}
+
+function PreviewField({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="bg-white/70 rounded p-2.5">
+      <div className="text-micro text-ink-500 mb-0.5">{label}</div>
+      <div className={`text-caption font-medium ${highlight ? 'text-brand-600' : 'text-ink-900'}`}>
+        {value}
+      </div>
+    </div>
   );
 }
