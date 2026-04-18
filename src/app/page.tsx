@@ -1,76 +1,144 @@
 import Link from 'next/link';
-import { Sparkles, Clock, Package, Bell } from 'lucide-react';
+import Image from 'next/image';
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-brand-50 to-ink-50">
-      <div className="container-app py-16 sm:py-24">
-        {/* 主視覺 */}
-        <section className="text-center mb-20">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-full text-caption text-brand-600 mb-6 shadow-soft">
-            <Sparkles className="w-4 h-4" />
-            <span>by SOON</span>
+    <main className="fini-page">
+
+      {/* Nav */}
+      <nav className="fini-nav">
+        <div className="fini-logo">
+          FINI <sup>®</sup>
+        </div>
+        <div className="fini-nav-links">
+          <Link href="#features" className="fini-nav-link">功能</Link>
+          <Link href="/login" className="fini-nav-cta">免費開始</Link>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="fini-hero">
+        {/* Left */}
+        <div className="fini-hero-left">
+          <div className="fini-eyebrow">
+            <span className="fini-eyebrow-dot" />
+            AI 美容管家
           </div>
 
-          <h1 className="font-display text-display-lg sm:text-[3.5rem] text-ink-900 mb-6 leading-tight">
-            您家中還有多少瓶
-            <br />
-            <span className="text-brand-500">未開封</span>的精華？
+          <h1 className="fini-headline">
+            又浪費了<br />
+            <em>一支化妝品</em>嗎？
           </h1>
 
-          <p className="text-body text-ink-600 max-w-xl mx-auto mb-10">
-            SOON Beauty 協助您追蹤每件化妝品護膚品的開封日期、過期日期及庫存數量。
-            減少囤積，避免浪費。
+          <p className="fini-subline">
+            拍照即記錄，AI 幫您看管每瓶護膚品。<br />
+            開封日、到期日、成份衝突，一目了然。
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/login" className="btn-primary">免費開始使用</Link>
-            <Link href="#features" className="btn-secondary">了解更多</Link>
+          <div className="fini-cta-row">
+            <Link href="/login" className="fini-btn-main">免費開始使用</Link>
+            <Link href="#features" className="fini-btn-out">了解更多</Link>
           </div>
 
-          <p className="text-micro text-ink-400 mt-4">免費版支援 100 件產品</p>
-        </section>
+          <p className="fini-quota">免費版支援 100 件產品</p>
+        </div>
 
-        {/* 功能介紹 */}
-        <section id="features" className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-20">
-          <FeatureCard
-            icon={<Clock className="w-5 h-5" />}
-            title="精準倒數"
-            description="根據開封日期與 PAO 自動計算實際到期日，一目了然哪些產品需要盡快使用。"
+        {/* Right — hero image */}
+        <div className="fini-hero-right">
+          <Image
+            src="/hero.jpg"
+            alt="化妝品成份特寫"
+            fill
+            style={{ objectFit: 'cover', objectPosition: 'center' }}
+            priority
           />
-          <FeatureCard
-            icon={<Package className="w-5 h-5" />}
-            title="庫存總覽"
-            description="依分類與自訂色系整理，外出購物前查看一下，避免重複購買。"
-          />
-          <FeatureCard
-            icon={<Bell className="w-5 h-5" />}
-            title="到期提醒"
-            description="即將過期的產品主動提醒您，無需自行記錄。"
-          />
-          <FeatureCard
-            icon={<Sparkles className="w-5 h-5" />}
-            title="消耗計畫"
-            description="設定目標，有計畫地使用現有產品，培養可持續的美容習慣。"
-          />
-        </section>
+          {/* Product card overlay */}
+          <div className="fini-product-card">
+            <div className="fini-card-swatch" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 3v10M3 8h10" stroke="#FDF8F6" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div className="fini-card-info">
+              <p className="fini-card-name">Laneige 水光精華</p>
+              <p className="fini-card-meta">開封 2024.09 · PAO 12M</p>
+            </div>
+            <div className="fini-card-pill">還剩 5 個月</div>
+          </div>
+        </div>
+      </section>
+
+      {/* Feature strip */}
+      <div id="features" className="fini-strip">
+        <FeatureItem
+          title="精準倒數"
+          desc="PAO 自動計算實際到期日"
+          icon={
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="5.5" stroke="#B06070" strokeWidth="1"/>
+              <path d="M7 4.5V7.5l1.5 1.5" stroke="#B06070" strokeWidth="1" strokeLinecap="round"/>
+            </svg>
+          }
+        />
+        <FeatureItem
+          title="庫存總覽"
+          desc="分類色系，外出購物前一覽"
+          icon={
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <rect x="1.5" y="2.5" width="11" height="9" rx="1.5" stroke="#B06070" strokeWidth="1"/>
+              <path d="M4.5 2.5V1.5M9.5 2.5V1.5" stroke="#B06070" strokeWidth="1" strokeLinecap="round"/>
+              <path d="M4 7h6M4 9h4" stroke="#B06070" strokeWidth="0.8" strokeLinecap="round"/>
+            </svg>
+          }
+        />
+        <FeatureItem
+          title="成份分析"
+          desc="AI 檢查相容性，助您決策"
+          icon={
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 2C4.8 2 3 3.8 3 6c0 2.4 4 7 4 7s4-4.6 4-7c0-2.2-1.8-4-4-4z" stroke="#B06070" strokeWidth="1"/>
+              <circle cx="7" cy="6" r="1.2" stroke="#B06070" strokeWidth="0.8"/>
+            </svg>
+          }
+        />
+        <FeatureItem
+          title="消耗計畫"
+          desc="有計畫地用完，不再囤積"
+          icon={
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 9l2.5-4 2 3 2.5-6L11 9" stroke="#B06070" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          }
+          last
+        />
       </div>
+
+      {/* Footer */}
+      <footer className="fini-footer">
+        <p className="fini-footer-by">by <span>SOON</span></p>
+        <p className="fini-footer-by">© 2026 Fini · 您的 AI 美容管家</p>
+      </footer>
+
     </main>
   );
 }
 
-function FeatureCard({ icon, title, description }: {
-  icon: React.ReactNode;
+function FeatureItem({
+  title,
+  desc,
+  icon,
+  last = false,
+}: {
   title: string;
-  description: string;
+  desc: string;
+  icon: React.ReactNode;
+  last?: boolean;
 }) {
   return (
-    <div className="card p-5">
-      <div className="w-10 h-10 rounded bg-brand-100 text-brand-600 flex items-center justify-center mb-3">
-        {icon}
-      </div>
-      <h3 className="text-title font-medium text-ink-900 mb-1">{title}</h3>
-      <p className="text-caption text-ink-600">{description}</p>
+    <div className={`fini-feat${last ? ' fini-feat-last' : ''}`}>
+      <div className="fini-feat-icon">{icon}</div>
+      <p className="fini-feat-title">{title}</p>
+      <p className="fini-feat-desc">{desc}</p>
     </div>
   );
 }
