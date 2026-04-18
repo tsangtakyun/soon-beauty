@@ -21,7 +21,7 @@ export default async function CategoriesPage() {
     .in('status', ['unopened', 'in_use']);
 
   const counts: Record<string, number> = {};
-  products?.forEach((p) => {
+  (products as { category_id: string | null }[] | null)?.forEach((p) => {
     if (p.category_id) counts[p.category_id] = (counts[p.category_id] ?? 0) + 1;
   });
 
