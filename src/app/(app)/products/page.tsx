@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, FlaskConical } from 'lucide-react';
 import { formatDaysLabel, getExpiryStatus, STATUS_COLORS } from '@/lib/utils';
 import type { ProductWithExpiry, Category } from '@/types/database';
 
@@ -69,10 +69,16 @@ export default async function ProductsPage({
           <h1 className="font-display text-heading text-ink-900">我的產品</h1>
           <p className="text-caption text-ink-500">共 {list.length} 件產品</p>
         </div>
-        <Link href="/products/scan" className="btn-primary">
-          <Plus className="w-4 h-4 mr-1" />
-          新增產品
-        </Link>
+      <div className="flex items-center gap-2">
+          <Link href="/analyze" className="btn-secondary">
+            <FlaskConical className="w-4 h-4 mr-1" />
+            分析成份
+          </Link>
+          <Link href="/products/scan" className="btn-primary">
+            <Plus className="w-4 h-4 mr-1" />
+            新增產品
+          </Link>
+        </div>
       </div>
 
       {/* 篩選標籤 */}

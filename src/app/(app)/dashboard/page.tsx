@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { Plus, AlertTriangle, Package, Clock, CheckCircle2 } from 'lucide-react';
+import { Plus, AlertTriangle, Package, Clock, CheckCircle2, FlaskConical } from 'lucide-react';
 import { formatDaysLabel, getExpiryStatus, STATUS_COLORS } from '@/lib/utils';
 import type { ProductWithExpiry } from '@/types/database';
 
@@ -37,6 +37,12 @@ export default async function DashboardPage() {
         <Link href="/products/scan" className="btn-primary">
           <Plus className="w-4 h-4 mr-1" />
           新增產品
+        </Link>
+      </div>
+      <div className="flex gap-2">
+        <Link href="/analyze" className="btn-secondary flex-1 justify-center">
+          <FlaskConical className="w-4 h-4 mr-1.5" />
+          分析產品成份
         </Link>
       </div>
 
