@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { Home, Package, Tag, Settings } from 'lucide-react';
+import { Home, Package, FlaskConical, Settings, Award } from 'lucide-react';
 
 export default async function AppLayout({
   children,
@@ -13,7 +13,7 @@ export default async function AppLayout({
   if (!user) redirect('/login');
 
   return (
-    <div className="min-h-screen pb-20 sm:pb-0" style={{ background: '#FAFAF8' }}>
+    <div className="min-h-screen pb-24 sm:pb-0" style={{ background: '#FAFAF8' }}>
 
       {/* Desktop top bar */}
       <header className="fini-app-header hidden sm:block">
@@ -24,7 +24,8 @@ export default async function AppLayout({
           <nav className="flex items-center gap-1">
             <NavLink href="/dashboard" label="首頁" />
             <NavLink href="/products"  label="產品" />
-            <NavLink href="/categories" label="分類" />
+            <NavLink href="/analyze"   label="分析成份" />
+            <NavLink href="/empty-bottle" label="鐵皮計劃" />
             <NavLink href="/settings"  label="設定" />
           </nav>
         </div>
@@ -41,14 +42,34 @@ export default async function AppLayout({
 
       <main className="container-app py-6">{children}</main>
 
-      {/* Mobile bottom nav */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-10"
-           style={{ background: '#FAFAF8', borderTop: '0.5px solid #E0D4D8' }}>
-        <div className="container-app grid grid-cols-4 h-16">
-          <BottomNavLink href="/dashboard" icon={<Home className="w-5 h-5" />}    label="首頁" />
+      {/* Mobile bottom nav — 5 items with central 鐵皮 button */}
+      <nav
+        className="sm:hidden fixed bottom-0 left-0 right-0 z-10"
+        style={{ background: '#FAFAF8', borderTop: '0.5px solid #E0D4D8' }}
+      >
+        <div className="flex items-end justify-around h-16 px-2">
+
+          <BottomNavLink href="/dashboard" icon={<Home className="w-5 h-5" />} label="首頁" />
           <BottomNavLink href="/products"  icon={<Package className="w-5 h-5" />} label="產品" />
-          <BottomNavLink href="/categories" icon={<Tag className="w-5 h-5" />}    label="分類" />
-          <BottomNavLink href="/settings"  icon={<Settings className="w-5 h-5" />} label="設定" />
+
+          {/* Central 鐵皮 button — elevated */}
+          <div className="flex flex-col items-center" style={{ marginBottom: 12 }}>
+            <Link
+              href="/empty-bottle"
+              className="flex flex-col items-center justify-center rounded-full"
+              style={{
+                width: 52, height: 52,
+                background: '#B06070',
+                boxShadow: '0 2px 12px rgba(176,96,112,0.35)',
+              }}
+            >
+              <Award style={{ width: 22, height: 22, color: '#FDF8F6' }} />
+            </Link>
+            <span className="text-micro mt-1" style={{ color: '#B06070', fontSize: 10 }}>鐵皮</span>
+          </div>
+
+          <BottomNavLink href="/analyze"  icon={<FlaskConical className="w-5 h-5" />} label="分析" />
+          <BottomNavLink href="/settings" icon={<Settings className="w-5 h-5" />} label="設定" />
         </div>
       </nav>
     </div>
@@ -67,15 +88,19 @@ function NavLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-function BottomNavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+function BottomNavLink({ href, icon, label }: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
   return (
     <Link
       href={href}
       className="flex flex-col items-center justify-center gap-0.5 transition-colors"
-      style={{ color: '#9A7080' }}
+      style={{ color: '#9A7080', minWidth: 48 }}
     >
       {icon}
-      <span className="text-micro">{label}</span>
+      <span style={{ fontSize: 10 }}>{label}</span>
     </Link>
   );
 }
