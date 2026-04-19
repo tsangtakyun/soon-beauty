@@ -730,3 +730,33 @@
   line-height: 1.6;
   font-weight: 300;
 }
+
+/* ── Lama dashboard greeting ── */
+.fini-lama-greeting {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.fini-lama-greeting-img {
+  flex-shrink: 0;
+  width: 80px;
+}
+
+.fini-lama-greeting-bubble {
+  background: #FDF0F4;
+  border: 0.5px solid #E8C8D0;
+  border-radius: 16px 16px 16px 4px;
+  padding: 14px 18px;
+  flex: 1;
+  position: relative;
+}
+
+.fini-lama-greeting-text {
+  font-size: 13px;
+  color: '#7A3050';
+  margin: 0;
+  line-height: 1.7;
+  font-weight: 300;
+  color: #7A3050;
+}
