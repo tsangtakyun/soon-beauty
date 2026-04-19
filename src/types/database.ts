@@ -34,6 +34,9 @@ export type Database = {
           icon: string | null;
           sort_order: number;
           is_default: boolean;
+          parent_id: string | null;
+          group_name: string | null;
+          shade: string | null;
           created_at: string;
         };
         Insert: {
@@ -44,6 +47,9 @@ export type Database = {
           icon?: string | null;
           sort_order?: number;
           is_default?: boolean;
+          parent_id?: string | null;
+          group_name?: string | null;
+          shade?: string | null;
         };
         Update: Partial<Database['public']['Tables']['categories']['Insert']>;
       };
@@ -120,3 +126,8 @@ export type Product = Database['public']['Tables']['products']['Row'];
 export type ProductWithExpiry = Database['public']['Views']['products_with_expiry']['Row'];
 export type Category = Database['public']['Tables']['categories']['Row'];
 export type Profile = Database['public']['Tables']['profiles']['Row'];
+
+export type CategoryGroup = {
+  parent: Category;
+  children: Category[];
+};
