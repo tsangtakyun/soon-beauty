@@ -7,9 +7,7 @@ export default function HomePage() {
 
       {/* Nav */}
       <nav className="fini-nav">
-        <div className="fini-logo">
-          FINI <sup>®</sup>
-        </div>
+        <div className="fini-logo">FINI <sup>®</sup></div>
         <div className="fini-nav-links">
           <Link href="#features" className="fini-nav-link">功能</Link>
           <Link href="/login" className="fini-nav-cta">免費開始</Link>
@@ -18,43 +16,51 @@ export default function HomePage() {
 
       {/* Hero */}
       <section className="fini-hero">
-        {/* Left */}
+
+        {/* Left — copy */}
         <div className="fini-hero-left">
           <div className="fini-eyebrow">
             <span className="fini-eyebrow-dot" />
-            AI 美容管家
+            你的 AI 美容管家
+          </div>
+
+          {/* Lama speech bubble */}
+          <div className="fini-lama-bubble">
+            <p>我係 Lama！已經幫你整理好你的化妝品啦～ 有幾支快過期，快啲用呀！</p>
           </div>
 
           <h1 className="fini-headline">
-            又浪費了<br />
-            <em>一支化妝品</em>嗎？
+            讓 Lama 幫你<br />
+            <em>管好每一支</em>
           </h1>
 
           <p className="fini-subline">
-            拍照即記錄，AI 幫您看管每瓶護膚品。<br />
-            開封日、到期日、成份衝突，一目了然。
+            拍照即記錄，AI 追蹤開封日、到期日、成份衝突。<br />
+            不再囤積，不再浪費。
           </p>
 
           <div className="fini-cta-row">
             <Link href="/login" className="fini-btn-main">免費開始使用</Link>
             <Link href="#features" className="fini-btn-out">了解更多</Link>
           </div>
-
           <p className="fini-quota">免費版支援 100 件產品</p>
         </div>
 
-        {/* Right — hero image */}
-        <div className="fini-hero-right">
-          <Image
-            src="/hero.jpg"
-            alt="化妝品成份特寫"
-            fill
-            style={{ objectFit: 'cover', objectPosition: 'center' }}
-            priority
-          />
-          {/* Product card overlay */}
+        {/* Right — Lama */}
+        <div className="fini-hero-right fini-lama-bg">
+          <div className="fini-lama-wrap">
+            <Image
+              src="/lama.svg"
+              alt="Lama — Fini的貓咪美容管家"
+              width={300}
+              height={395}
+              priority
+            />
+          </div>
+
+          {/* Floating product card */}
           <div className="fini-product-card">
-            <div className="fini-card-swatch" aria-hidden="true">
+            <div className="fini-card-swatch">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M8 3v10M3 8h10" stroke="#FDF8F6" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
@@ -82,11 +88,10 @@ export default function HomePage() {
         />
         <FeatureItem
           title="庫存總覽"
-          desc="分類色系，外出購物前一覽"
+          desc="三大類整理，外出前一覽"
           icon={
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <rect x="1.5" y="2.5" width="11" height="9" rx="1.5" stroke="#B06070" strokeWidth="1"/>
-              <path d="M4.5 2.5V1.5M9.5 2.5V1.5" stroke="#B06070" strokeWidth="1" strokeLinecap="round"/>
               <path d="M4 7h6M4 9h4" stroke="#B06070" strokeWidth="0.8" strokeLinecap="round"/>
             </svg>
           }
@@ -102,11 +107,11 @@ export default function HomePage() {
           }
         />
         <FeatureItem
-          title="消耗計畫"
-          desc="有計畫地用完，不再囤積"
+          title="鐵皮計劃"
+          desc="記錄每一支用完的成就"
           icon={
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M2 9l2.5-4 2 3 2.5-6L11 9" stroke="#B06070" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M7 2l1.5 3 3.5.5-2.5 2.5.5 3.5L7 10l-3 1.5.5-3.5L2 5.5 5.5 5Z" stroke="#B06070" strokeWidth="1" strokeLinejoin="round"/>
             </svg>
           }
           last
@@ -116,23 +121,15 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="fini-footer">
         <p className="fini-footer-by">by <span>SOON</span></p>
-        <p className="fini-footer-by">© 2026 Fini · 您的 AI 美容管家</p>
+        <p className="fini-footer-by">© 2026 Fini · Lama 的美容倉庫</p>
       </footer>
 
     </main>
   );
 }
 
-function FeatureItem({
-  title,
-  desc,
-  icon,
-  last = false,
-}: {
-  title: string;
-  desc: string;
-  icon: React.ReactNode;
-  last?: boolean;
+function FeatureItem({ title, desc, icon, last = false }: {
+  title: string; desc: string; icon: React.ReactNode; last?: boolean;
 }) {
   return (
     <div className={`fini-feat${last ? ' fini-feat-last' : ''}`}>

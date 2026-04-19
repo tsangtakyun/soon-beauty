@@ -695,3 +695,38 @@
 }
 
 .fini-section-link:hover { opacity: 0.75; }
+
+/* ── Lama mascot ── */
+.fini-lama-bg {
+  background: #F5EEF2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.fini-lama-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 32px;
+}
+
+.fini-lama-bubble {
+  background: #FDF0F4;
+  border: 0.5px solid #E8C8D0;
+  border-radius: 16px 16px 16px 4px;
+  padding: 12px 16px;
+  margin-bottom: 22px;
+  max-width: 280px;
+}
+
+.fini-lama-bubble p {
+  font-size: 13px;
+  color: #7A3050;
+  margin: 0;
+  line-height: 1.6;
+  font-weight: 300;
+}
