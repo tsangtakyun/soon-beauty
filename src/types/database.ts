@@ -126,6 +126,13 @@ export type Product = Database['public']['Tables']['products']['Row'];
 export type ProductWithExpiry = Database['public']['Views']['products_with_expiry']['Row'];
 export type Category = Database['public']['Tables']['categories']['Row'];
 export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type ProductLog = {
+  id: string;
+  user_id: string;
+  product_id: string;
+  logged_date: string;
+  created_at: string;
+};
 
 export type CategoryGroup = {
   parent: Category;
