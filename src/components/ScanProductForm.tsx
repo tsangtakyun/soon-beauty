@@ -321,13 +321,13 @@ export default function ScanProductForm({ categories }: { categories: Category[]
   }
 
   if (stage === 'form') {
-    const initial: Partial<Product> = ocrResult ? {
+    const initial: Partial<Product> & { category_id?: string | null } = ocrResult ? {
       name: ocrResult.name ?? '',
       brand: ocrResult.brand ?? null,
       pao_months: ocrResult.pao_months ?? null,
       expiry_date: ocrResult.expiry_date ?? ocrResult.computed_expiry_date ?? null,
       photo_url: photoUrl ?? null,
-      category_id: ocrResult.matched_category_id ?? null,
+      category_id: ocrResult.matched_category_id ?? undefined,
     } : {};
 
     return (

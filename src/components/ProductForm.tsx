@@ -72,7 +72,7 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
   const [form, setForm] = useState({
     name:        source?.name ?? '',
     brand:       (source?.brand as string) ?? '',
-    category_id: source?.category_id ?? '',
+    category_id: source?.category_id != null ? source.category_id : '',
     shade:       '',
     pao_months:  source?.pao_months?.toString() ?? '',
     expiry_date: (source?.expiry_date as string) ?? '',
