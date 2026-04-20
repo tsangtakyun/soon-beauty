@@ -69,8 +69,22 @@ export default async function ProductsPage({
   const { data: products } = await query;
   const list = (products as ProductWithExpiry[] | null) ?? [];
 
-  // Figure out which category IDs have products
-  const catIdsWithProducts = new Set(list.map((p) => p.category_id).filter(Boolean));
+  // Figure out which category IDs have products (via primary OR tags)
+  const catIdsWithProducts = new Set<string>();
+  list.forEach((p) => {
+    if (p.category_id) catIdsWithProducts.add(p.category_id);
+    const tags = (p as typeof p & { tags?: string[] | null }).tags;
+    if (tags) tags.forEach((t) => catIdsWithProducts.add(t));
+  });
+
+  // When filtering by category, also include products where it's a tag
+  const filteredList = categoryId
+    ? list.filter((p) => {
+        if (p.category_id === categoryId) return true;
+        const tags = (p as typeof p & { tags?: string[] | null }).tags;
+        return tags?.includes(categoryId) ?? false;
+      })
+    : list;
 
   // Build group → children structure, only showing cats with products (unless filtered)
   const showAll = filter !== 'all' || categoryId;
@@ -150,7 +164,8 @@ export default async function ProductsPage({
         // Grouped view
         <div className="space-y-6">
           {groups.map(({ parent, kids }) => {
-            const groupProducts = list.filter((p) => kids.some((k) => k.id === p.category_id));
+            const groupProducts = filteredList.filter((p) => kids.some((k) => k.id === p.category_id ||
+              ((p as typeof p & { tags?: string[] | null }).tags ?? []).includes(k.id)));
             if (groupProducts.length === 0 && !showAll) return null;
             return (
               <section key={parent.id}>
@@ -172,7 +187,10 @@ export default async function ProductsPage({
                   {kids
                     .filter((k) => catIdsWithProducts.has(k.id))
                     .map((k) => {
-                      const count = list.filter((p) => p.category_id === k.id).length;
+                      const count = list.filter((p) =>
+                        p.category_id === k.id ||
+                        ((p as typeof p & { tags?: string[] | null }).tags ?? []).includes(k.id)
+                      ).length;
                       return (
                         <Link
                           key={k.id}
@@ -194,7 +212,7 @@ export default async function ProductsPage({
                     })}
                 </div>
 
-                {/* Products under this group */}
+                {/* Products under this group — show if primary OR tag matches */}
                 <div className="space-y-2">
                   {groupProducts.map((p) => (
                     <ProductCard key={p.id} product={p} />

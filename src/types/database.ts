@@ -58,6 +58,7 @@ export type Database = {
           id: string;
           user_id: string;
           category_id: string | null;
+          tags: string[] | null;
           name: string;
           brand: string | null;
           barcode: string | null;
@@ -78,6 +79,7 @@ export type Database = {
           id?: string;
           user_id: string;
           category_id?: string | null;
+          tags?: string[] | null;
           name: string;
           brand?: string | null;
           barcode?: string | null;
