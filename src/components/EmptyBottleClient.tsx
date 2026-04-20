@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, X, Share2, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, X, Share2, Check, Search } from 'lucide-react';
 import type { Product } from '@/types/database';
 
 const MAX_WATCHLIST = 10;
-const WATCHLIST_TAG = '__watchlist__';
 
 type Props = {
   allActive: Product[];
@@ -19,39 +18,49 @@ type Props = {
 export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavings, monthLabel }: Props) {
   const router = useRouter();
   const [showPicker, setShowPicker] = useState(false);
+  const [search, setSearch] = useState('');
   const [marking, setMarking] = useState<string | null>(null);
+  const [toggling, setToggling] = useState<string | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [reportHtml, setReportHtml] = useState<string | null>(null);
 
-  // Watchlist = active products whose notes contain WATCHLIST_TAG
-  const watchlist = allActive.filter((p) => p.notes?.includes(WATCHLIST_TAG));
-  const nonWatchlist = allActive.filter((p) => !p.notes?.includes(WATCHLIST_TAG));
+  const watchlist = allActive.filter((p) => p.on_watchlist);
+  const nonWatchlist = allActive.filter((p) => !p.on_watchlist);
+
+  // Search filter for picker
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return nonWatchlist;
+    return nonWatchlist.filter((p) =>
+      p.name.toLowerCase().includes(q) || (p.brand ?? '').toLowerCase().includes(q)
+    );
+  }, [search, nonWatchlist]);
 
   async function addToWatchlist(product: Product) {
     if (watchlist.length >= MAX_WATCHLIST) return;
+    setToggling(product.id);
     const supabase = createClient();
-    const newNotes = product.notes
-      ? `${product.notes}\n${WATCHLIST_TAG}`
-      : WATCHLIST_TAG;
-    await supabase.from('products').update({ notes: newNotes }).eq('id', product.id);
+    await supabase.from('products').update({ on_watchlist: true }).eq('id', product.id);
     router.refresh();
+    setToggling(null);
     setShowPicker(false);
+    setSearch('');
   }
 
   async function removeFromWatchlist(product: Product) {
+    setToggling(product.id);
     const supabase = createClient();
-    const newNotes = (product.notes ?? '').replace(WATCHLIST_TAG, '').trim() || null;
-    await supabase.from('products').update({ notes: newNotes }).eq('id', product.id);
+    await supabase.from('products').update({ on_watchlist: false }).eq('id', product.id);
     router.refresh();
+    setToggling(null);
   }
 
   async function markFinished(product: Product) {
     setMarking(product.id);
     const supabase = createClient();
-    const cleanNotes = (product.notes ?? '').replace(WATCHLIST_TAG, '').trim() || null;
     await supabase.from('products').update({
       status: 'finished',
-      notes: cleanNotes,
+      on_watchlist: false,
     }).eq('id', product.id);
     router.refresh();
     setMarking(null);
@@ -70,13 +79,12 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
 
 要求：
 - 只return純HTML（唔好markdown唔好code fence）
-- 寬度固定500px，可以截圖分享
-- 用Fini嘅品牌色：深色 #1A1218，玫瑰 #B06070，米色 #FAFAF8
-- 頂部有「FINI ®」logo同「${monthLabel} 鐵皮報告」
-- 中間顯示主要數字（用完X件）同Lama說一句鼓勵說話
-- 底部列出本月鐵皮清單
-- 設計要靚，可以直接截圖post社交媒體
-- Lama說話要親切有趣，廣東話口吻`;
+- 固定寬度480px，可以截圖分享
+- 用Fini品牌色：背景 #FAFAF8，深色文字 #1A1218，玫瑰 #B06070，字體用system-ui
+- 頂部有「FINI ®」（letter-spacing寬一點）同「${monthLabel} 鐵皮報告」
+- 中間大數字顯示用完件數，Lama說一句廣東話鼓勵說話（親切有趣）
+- 底部列出本月鐵皮清單（每行一件）
+- 整體padding 32px，設計簡潔靚靚，可以直接截圖post小紅書/IG`;
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -84,7 +92,7 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
+          max_tokens: 1200,
           messages: [{ role: 'user', content: prompt }],
         }),
       });
@@ -93,7 +101,7 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
       const clean = html.replace(/^```html\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
       setReportHtml(clean);
     } catch {
-      setReportHtml('<div style="padding:20px;color:#A04040">生成失敗，請稍後再試</div>');
+      setReportHtml('<div style="padding:20px;color:#A04040;font-family:system-ui">生成失敗，請稍後再試</div>');
     }
     setGeneratingReport(false);
   }
@@ -101,66 +109,29 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
   return (
     <div className="space-y-4">
 
-      {/* Watchlist section */}
+      {/* Watchlist card */}
       <div className="card overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: '#E0D4D8' }}>
+        <div className="flex items-center justify-between p-4" style={{ borderBottom: '0.5px solid #E0D4D8' }}>
           <div>
-            <h2 className="fini-section-title" style={{ fontSize: 16 }}>
-              鐵皮清單
-              <span className="text-micro ml-2 font-normal" style={{ color: '#9A7080' }}>
+            <div className="flex items-center gap-2">
+              <h2 style={{ fontSize: 15, fontWeight: 500, color: '#1A1218', margin: 0 }}>鐵皮清單</h2>
+              <span className="text-micro px-1.5 py-0.5 rounded-full"
+                style={{ background: '#F0E4E8', color: '#9A7080' }}>
                 {watchlist.length}/{MAX_WATCHLIST}
               </span>
-            </h2>
+            </div>
             <p className="text-micro mt-0.5" style={{ color: '#9A7080' }}>追蹤我想用完嘅產品</p>
           </div>
           {watchlist.length < MAX_WATCHLIST && (
             <button
-              onClick={() => setShowPicker(!showPicker)}
+              onClick={() => { setShowPicker(true); setSearch(''); }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption transition-all"
               style={{ background: '#F0E4E8', color: '#7A5060' }}
             >
-              <Plus style={{ width: 13, height: 13 }} />
-              加入
+              <Plus style={{ width: 13, height: 13 }} />加入
             </button>
           )}
         </div>
-
-        {/* Picker */}
-        {showPicker && (
-          <div className="border-b" style={{ borderColor: '#E0D4D8', background: '#FAF6F8' }}>
-            <div className="p-3">
-              <p className="text-micro mb-2" style={{ color: '#9A7080' }}>揀一件想用完嘅產品：</p>
-              {nonWatchlist.length === 0 ? (
-                <p className="text-caption" style={{ color: '#B09898' }}>所有產品已在清單內</p>
-              ) : (
-                <div className="space-y-1 max-h-48 overflow-y-auto">
-                  {nonWatchlist.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => addToWatchlist(p)}
-                      className="w-full flex items-center gap-2 p-2 rounded-md text-left transition-colors hover:bg-white"
-                    >
-                      {p.photo_url ? (
-                        <img src={p.photo_url} alt={p.name}
-                          className="rounded object-cover flex-shrink-0"
-                          style={{ width: 32, height: 32 }} />
-                      ) : (
-                        <div className="rounded flex-shrink-0 flex items-center justify-center"
-                          style={{ width: 32, height: 32, background: '#E8E0E4', color: '#5A4050', fontSize: 14 }}>
-                          {p.name.slice(0, 1)}
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <div className="text-caption truncate" style={{ color: '#1A1218' }}>{p.name}</div>
-                        <div className="text-micro" style={{ color: '#9A7080' }}>{p.brand ?? '—'}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Watchlist items */}
         {watchlist.length === 0 ? (
@@ -170,16 +141,18 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
             </p>
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: '#F0E8EC' }}>
+          <div>
             {watchlist.map((p) => (
-              <div key={p.id} className="p-3 flex items-center gap-3">
+              <div key={p.id} className="flex items-center gap-3 p-3"
+                style={{ borderBottom: '0.5px solid #F5EEF0' }}>
                 {p.photo_url ? (
                   <img src={p.photo_url} alt={p.name}
                     className="rounded object-cover flex-shrink-0"
                     style={{ width: 40, height: 40 }} />
                 ) : (
                   <div className="rounded flex-shrink-0 flex items-center justify-center"
-                    style={{ width: 40, height: 40, background: '#E8E0E4', color: '#5A4050', fontSize: 16 }}>
+                    style={{ width: 40, height: 40, background: '#E8E0E4', color: '#5A4050', fontSize: 16,
+                      fontFamily: "'Cormorant Garamond', serif" }}>
                     {p.name.slice(0, 1)}
                   </div>
                 )}
@@ -198,6 +171,7 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
                     {marking === p.id ? '標記中...' : '用完了'}
                   </button>
                   <button onClick={() => removeFromWatchlist(p)}
+                    disabled={toggling === p.id}
                     className="p-1 rounded-full transition-colors"
                     style={{ color: '#C8B4BC' }}>
                     <X style={{ width: 14, height: 14 }} />
@@ -209,39 +183,119 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
         )}
       </div>
 
+      {/* Picker modal */}
+      {showPicker && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          style={{ background: 'rgba(26,18,24,0.5)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowPicker(false); setSearch(''); } }}
+        >
+          <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl overflow-hidden"
+            style={{ background: '#FAFAF8', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+
+            {/* Modal header */}
+            <div className="flex items-center justify-between p-4"
+              style={{ borderBottom: '0.5px solid #E0D4D8' }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1218' }}>加入鐵皮清單</div>
+                <div className="text-micro" style={{ color: '#9A7080' }}>
+                  還可以加 {MAX_WATCHLIST - watchlist.length} 件
+                </div>
+              </div>
+              <button onClick={() => { setShowPicker(false); setSearch(''); }}
+                className="p-1.5 rounded-full" style={{ background: '#F0E4E8', color: '#7A5060' }}>
+                <X style={{ width: 16, height: 16 }} />
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="p-3" style={{ borderBottom: '0.5px solid #F0E8EC' }}>
+              <div className="relative">
+                <Search style={{ width: 14, height: 14, position: 'absolute', left: 12, top: '50%',
+                  transform: 'translateY(-50%)', color: '#B09898' }} />
+                <input
+                  type="text"
+                  placeholder="搜尋產品名稱或品牌..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  autoFocus
+                  className="input"
+                  style={{ paddingLeft: 34, fontSize: 13 }}
+                />
+              </div>
+            </div>
+
+            {/* Product list */}
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {filtered.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-caption" style={{ color: '#B09898' }}>
+                    {search ? '找不到符合嘅產品' : '所有產品已在清單內'}
+                  </p>
+                </div>
+              ) : (
+                filtered.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => addToWatchlist(p)}
+                    disabled={toggling === p.id}
+                    className="w-full flex items-center gap-3 p-3 text-left transition-colors"
+                    style={{ borderBottom: '0.5px solid #F5EEF0' }}
+                  >
+                    {p.photo_url ? (
+                      <img src={p.photo_url} alt={p.name}
+                        className="rounded object-cover flex-shrink-0"
+                        style={{ width: 40, height: 40 }} />
+                    ) : (
+                      <div className="rounded flex-shrink-0 flex items-center justify-center"
+                        style={{ width: 40, height: 40, background: '#E8E0E4', color: '#5A4050', fontSize: 16,
+                          fontFamily: "'Cormorant Garamond', serif" }}>
+                        {p.name.slice(0, 1)}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-caption font-medium truncate" style={{ color: '#1A1218' }}>{p.name}</div>
+                      <div className="text-micro" style={{ color: '#9A7080' }}>{p.brand ?? '—'}</div>
+                    </div>
+                    <Plus style={{ width: 16, height: 16, color: '#C8B4BC', flexShrink: 0 }} />
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Monthly report */}
       <div className="card p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="fini-section-title" style={{ fontSize: 16 }}>{monthLabel}鐵皮報告</h2>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1218' }}>{monthLabel}鐵皮報告</div>
+            {thisMonth.length === 0 ? (
+              <p className="text-micro mt-0.5" style={{ color: '#B09898' }}>本月尚未有鐵皮記錄</p>
+            ) : (
+              <p className="text-micro mt-0.5" style={{ color: '#7A6068' }}>
+                本月用完 <span style={{ color: '#B06070', fontWeight: 500 }}>{thisMonth.length}</span> 件
+                {thisMonthSavings > 0 && <> · 節省 <span style={{ color: '#2E7A4A', fontWeight: 500 }}>HK${thisMonthSavings.toFixed(0)}</span></>}
+              </p>
+            )}
+          </div>
           <button
             onClick={generateReport}
             disabled={generatingReport}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption transition-all"
-            style={{ background: '#B06070', color: '#FDF8F6' }}
+            style={{ background: '#B06070', color: '#FDF8F6', opacity: generatingReport ? 0.7 : 1 }}
           >
             <Share2 style={{ width: 13, height: 13 }} />
             {generatingReport ? '生成中...' : '生成報告'}
           </button>
         </div>
 
-        {thisMonth.length === 0 ? (
-          <p className="text-caption" style={{ color: '#B09898' }}>本月尚未有鐵皮記錄</p>
-        ) : (
-          <div className="text-caption" style={{ color: '#7A6068' }}>
-            本月用完 <span style={{ color: '#B06070', fontWeight: 500 }}>{thisMonth.length}</span> 件
-            {thisMonthSavings > 0 && <>，節省 <span style={{ color: '#2E7A4A', fontWeight: 500 }}>HK${thisMonthSavings.toFixed(0)}</span></>}
-          </div>
-        )}
-
-        {/* Generated report */}
         {reportHtml && (
-          <div className="mt-3 space-y-2">
-            <p className="text-micro" style={{ color: '#9A7080' }}>截圖後可直接分享到社交媒體 📸</p>
-            <div
-              className="rounded-md overflow-hidden border"
-              style={{ borderColor: '#E0D4D8' }}
-              dangerouslySetInnerHTML={{ __html: reportHtml }}
-            />
+          <div className="space-y-2">
+            <p className="text-micro" style={{ color: '#9A7080' }}>截圖後可分享到 IG / 小紅書 📸</p>
+            <div className="rounded-md overflow-hidden" style={{ border: '0.5px solid #E0D4D8' }}
+              dangerouslySetInnerHTML={{ __html: reportHtml }} />
           </div>
         )}
       </div>

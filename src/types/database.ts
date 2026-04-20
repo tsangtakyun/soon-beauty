@@ -59,6 +59,7 @@ export type Database = {
           user_id: string;
           category_id: string | null;
           tags: string[] | null;
+          on_watchlist: boolean | null;
           name: string;
           brand: string | null;
           barcode: string | null;
@@ -80,6 +81,7 @@ export type Database = {
           user_id: string;
           category_id?: string | null;
           tags?: string[] | null;
+          on_watchlist?: boolean | null;
           name: string;
           brand?: string | null;
           barcode?: string | null;
@@ -100,6 +102,7 @@ export type Database = {
     Views: {
       products_with_expiry: {
         Row: Database['public']['Tables']['products']['Row'] & {
+          tags: string[] | null;
           category_name: string | null;
           category_color: string | null;
           category_icon: string | null;

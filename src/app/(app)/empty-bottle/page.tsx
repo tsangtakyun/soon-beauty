@@ -39,7 +39,7 @@ export default async function EmptyBottlePage() {
   const thisMonthSavings = thisMonth.reduce((sum, p) => sum + (p.price ?? 0), 0);
   const totalSavings = bottles.reduce((sum, p) => sum + (p.price ?? 0), 0);
 
-  // Watchlist — in_use products marked for finishing (using notes hack: tag "[watchlist]")
+  // Active products (for watchlist picker)
   const { data: inUse } = await supabase
     .from('products')
     .select('*')
