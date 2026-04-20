@@ -16,6 +16,7 @@ type OcrResult = {
   name: string | null;
   brand: string | null;
   pao_months: number | null;
+  pao_source: 'seen' | 'estimated' | null;
   expiry_date: string | null;
   batch_code: string | null;
   production_date: string | null;
@@ -23,6 +24,8 @@ type OcrResult = {
   production_date_reasoning: string | null;
   computed_expiry_date: string | null;
   computed_expiry_reasoning: string | null;
+  suggested_category: string | null;
+  matched_category_id?: string;
   confidence: {
     name: Confidence;
     brand: Confidence;
@@ -104,10 +107,12 @@ export default function ScanProductForm({ categories }: { categories: Category[]
         pao_months: ocrResult.pao_months ?? null,
         expiry_date: ocrResult.expiry_date ?? ocrResult.computed_expiry_date ?? null,
         photo_url: photoUrl ?? null,
+        category_id: ocrResult.matched_category_id ?? null,
         status: 'unopened',
         notes: [
           ocrResult.batch_code ? `批號：${ocrResult.batch_code}` : null,
           ocrResult.production_date ? `生產日期：${ocrResult.production_date}` : null,
+          ocrResult.pao_source === 'estimated' ? `PAO 係根據產品類別估算，請核實` : null,
           ocrResult.computed_expiry_reasoning ?? null,
         ].filter(Boolean).join('\n') || null,
       })
@@ -230,7 +235,16 @@ export default function ScanProductForm({ categories }: { categories: Category[]
                 label="PAO（開封後保質期）"
                 value={ocrResult.pao_months ? `${ocrResult.pao_months} 個月` : null}
                 confidence={ocrResult.confidence.pao_months}
+                isEstimate={ocrResult.pao_source === 'estimated'}
+                estimateReason={ocrResult.pao_source === 'estimated' ? '包裝未見PAO符號，根據產品類別估算' : undefined}
               />
+              {ocrResult.suggested_category && (
+                <ResultRow
+                  label="建議分類"
+                  value={ocrResult.suggested_category + (ocrResult.matched_category_id ? ' ✓' : ' （未能自動匹配）')}
+                  confidence={ocrResult.matched_category_id ? 'high' : 'medium'}
+                />
+              )}
               <ResultRow label="包裝到期日" value={ocrResult.expiry_date} confidence={ocrResult.confidence.expiry_date} />
               {ocrResult.batch_code && (
                 <ResultRow label="批號" value={ocrResult.batch_code} confidence="high" />
@@ -313,6 +327,7 @@ export default function ScanProductForm({ categories }: { categories: Category[]
       pao_months: ocrResult.pao_months ?? null,
       expiry_date: ocrResult.expiry_date ?? ocrResult.computed_expiry_date ?? null,
       photo_url: photoUrl ?? null,
+      category_id: ocrResult.matched_category_id ?? null,
     } : {};
 
     return (

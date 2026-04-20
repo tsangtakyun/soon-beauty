@@ -2,172 +2,215 @@ import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
-type OcrImage = {
-  /** 'front' | 'bottom' | 'expiry' */
-  type: 'front' | 'bottom' | 'expiry';
-  /** base64 string without data URI prefix */
-  data: string;
-  /** e.g. 'image/jpeg' */
-  mediaType: 'image/jpeg' | 'image/png' | 'image/webp';
-};
+type Confidence = 'high' | 'medium' | 'low' | 'none';
 
 type OcrResult = {
   name: string | null;
   brand: string | null;
   pao_months: number | null;
+  pao_source: 'seen' | 'estimated' | null;
   expiry_date: string | null;
   batch_code: string | null;
   production_date: string | null;
-  production_date_confidence: 'high' | 'medium' | 'low' | 'none';
+  production_date_confidence: Confidence;
   production_date_reasoning: string | null;
   computed_expiry_date: string | null;
   computed_expiry_reasoning: string | null;
+  suggested_category: string | null;
   confidence: {
-    name: 'high' | 'medium' | 'low' | 'none';
-    brand: 'high' | 'medium' | 'low' | 'none';
-    pao_months: 'high' | 'medium' | 'low' | 'none';
-    expiry_date: 'high' | 'medium' | 'low' | 'none';
+    name: Confidence;
+    brand: Confidence;
+    pao_months: Confidence;
+    expiry_date: Confidence;
   };
   notes: string | null;
 };
 
+// 分類名稱列表（同DB一致）
+const CATEGORY_LIST = [
+  '卸妝','潔面','爽膚水','精華','面霜','眼霜','防曬','面膜','其他面部護理',
+  '妝前底霜','粉底','遮瑕','定妝','提亮／高光','腮紅','修容','眉毛',
+  '眼影','眼線','睫毛膏','唇妝','其他彩妝',
+  '沐浴','身體乳','護手霜','香水','頭髮護理','其他身體護理',
+];
+
 const SYSTEM_PROMPT = `你係一個化妝品/護膚品產品資料抽取專家。用戶會提供最多3張產品包裝嘅相：
 
 1. **front** — 產品正面，有產品名同品牌
-2. **bottom** — 產品底部，通常有PAO icon（開蓋icon，入面寫住數字例如6M/12M/24M）同批號/生產日期
-3. **expiry** — 到期日標示（有啲產品有，有啲冇）
+2. **bottom** — 產品底部，有PAO符號同批號
+3. **expiry** — 到期日標示
 
-你嘅任務係抽取以下資料，同時根據批號推算生產日期，再用生產日期+PAO推算過期日子。Return PURE JSON（唔好有任何其他文字、markdown、code fence）：
+Return PURE JSON（唔好有任何其他文字、markdown、code fence）：
 
 {
-  "name": "產品名，只抽產品自己嘅名唔好包品牌",
+  "name": "產品名（唔包品牌）",
   "brand": "品牌名",
   "pao_months": 12,
+  "pao_source": "seen",
   "expiry_date": "2027-03-15",
-  "batch_code": "批號原文",
+  "batch_code": "批號",
   "production_date": "2024-09-01",
   "production_date_confidence": "medium",
-  "production_date_reasoning": "根據P&G批號格式推算...",
+  "production_date_reasoning": "推算說明",
   "computed_expiry_date": "2025-09-01",
-  "computed_expiry_reasoning": "生產日期2024-09-01 + PAO 12個月 = 2025-09-01",
+  "computed_expiry_reasoning": "計算說明",
+  "suggested_category": "精華",
   "confidence": {
     "name": "high",
     "brand": "high",
     "pao_months": "medium",
     "expiry_date": "none"
   },
-  "notes": "其他有用嘅觀察"
+  "notes": "其他觀察"
 }
 
-**批號解碼規則（重要）：**
-- P&G品牌（Head & Shoulders、Pantene、Olay、SK-II、Gillette等）：通常用YYDDD格式（年份+天數）或YYWW（年份+週數）
-- L'Oréal集團（L'Oréal、Maybelline、Garnier、Kiehl's、Lancome等）：通常用BYYYYDDD格式
-- Unilever（Dove、Vaseline、TRESemmé等）：通常用年月日組合
-- Estée Lauder集團（MAC、Clinique、Bobbi Brown等）：通常用字母+數字組合代表年月
-- 日本品牌（Shiseido、KOSÉ、Kanebo等）：通常直接印生產年月
-- 韓國品牌（Innisfree、Laneige、COSRX等）：通常直接印日期
-- 如果唔確定品牌嘅batch code格式，誠實講low confidence，唔好亂估
+═══════════════════════════════
+PAO 識別規則（最重要，請仔細閱讀）
+═══════════════════════════════
 
-**過期日推算規則：**
-- 如果有production_date同pao_months → computed_expiry_date = production_date + pao_months
-- 如果只有production_date冇pao_months → 根據產品類別估算常見PAO（精華/面霜12M、防曬12M、唇膏12-24M），並列明係估算
-- 如果production_date推算唔到 → computed_expiry_date填null
-- computed_expiry_date格式：YYYY-MM-DD
-- computed_expiry_reasoning用繁體中文解釋計算過程
+PAO = Period After Opening，即開封後保質期。
+
+**PAO符號形式（全部都要識別）：**
+- 開蓋罐仔圖示內寫住數字：6M、12M、18M、24M、36M
+- 文字形式："After opening use within 12 months"
+- 簡寫："12 Months"、"12 mths"、"Use within 12M"
+- 中文："開封後12個月內使用"、"开封后请于12个月内用完"
+- 日文："開封後12ヶ月以内に使用"
+- 韓文："개봉 후 12개월"
+- 數字+M/m：任何包裝上孤立出現嘅"6M""12M""24M"等
+
+**PAO搵唔到時嘅處理：**
+如果相片中真係搵唔到任何PAO標示，根據產品類型估算：
+- 精華、面霜、眼霜：12個月
+- 防曬：12個月
+- 洗面奶、潔面：12個月
+- 面膜（片裝）：3年（未開封），開封即用
+- 唇膏、唇彩：12-24個月
+- 眼影、腮紅（乾粉）：24個月
+- 睫毛膏：3-6個月
+- 沐浴、洗髮：24-36個月
+- 香水：36個月以上
+
+估算時：pao_months填估算值，pao_source填"estimated"，confidence.pao_months填"low"
+
+**見到PAO時：** pao_source填"seen"，confidence.pao_months填"high"或"medium"
+
+═══════════════════════════════
+分類建議規則
+═══════════════════════════════
+
+根據產品名稱同品牌，從以下列表揀最合適嘅一個：
+${CATEGORY_LIST.join('、')}
+
+例子：
+- "Water Sleeping Mask" → 面膜
+- "Moisture Surge Moisturizer" → 面霜
+- "Retinol Serum" → 精華
+- "Foundation" / "BB Cream" → 粉底
+- "Eyeshadow Palette" → 眼影
+- "Lipstick" / "Lip Tint" → 唇妝
+- "Shampoo" / "Conditioner" → 頭髮護理
+- "Body Lotion" → 身體乳
+- "Sunscreen" / "SPF" → 防曬
+- "Blush" → 腮紅
+- "Mascara" → 睫毛膏
+
+唔確定就填null。
+
+═══════════════════════════════
+批號解碼規則
+═══════════════════════════════
+- P&G（H&S、Pantene、Olay、SK-II）：YYDDD或YYWW格式
+- L'Oréal集團（L'Oréal、Maybelline、Garnier、Kiehl's、Lancome）：BYYYYDDD格式
+- Unilever（Dove、Vaseline）：年月日組合
+- Estée Lauder集團（MAC、Clinique、Bobbi Brown）：字母+數字
+- 日本品牌（Shiseido、KOSÉ）：直接印生產年月
+- 韓國品牌（Innisfree、Laneige、COSRX）：直接印日期
+
+═══════════════════════════════
+過期日推算
+═══════════════════════════════
+- production_date + pao_months = computed_expiry_date
+- 格式：YYYY-MM-DD
+- computed_expiry_reasoning用繁體中文解釋
 
 **重要規則：**
-- 睇唔到就填null，千祈唔好亂估（錯data比冇data更差）
-- expiry_date只係包裝上印嘅到期日，唔係計算出嚟嘅
-- computed_expiry_date係根據生產日期推算嘅，同expiry_date係兩回事
-- confidence要honest — 睇得清楚就high，模糊就low
-- notes用繁體中文寫`;
+- 睇唔到就填null，PAO除外（估算）
+- expiry_date只係包裝上印嘅，唔係計算出嚟嘅
+- notes用繁體中文`;
 
 export async function POST(request: Request) {
-  // Auth check
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
     const body = await request.json();
-    const images: OcrImage[] = body.images;
+    const images: { type: string; data: string; mediaType: string }[] = body.images;
 
-    if (!images || !Array.isArray(images) || images.length === 0) {
-      return NextResponse.json(
-        { error: 'At least one image is required' },
-        { status: 400 }
-      );
+    if (!images || images.length === 0) {
+      return NextResponse.json({ error: 'At least one image required' }, { status: 400 });
     }
 
-    // Build message content: each image labelled by its type
     const content: Anthropic.Messages.ContentBlockParam[] = [];
-
     for (const img of images) {
-      content.push({
-        type: 'text',
-        text: `[${img.type.toUpperCase()}]`,
-      });
+      content.push({ type: 'text', text: `[${img.type.toUpperCase()}]` });
       content.push({
         type: 'image',
         source: {
           type: 'base64',
-          media_type: img.mediaType,
+          media_type: img.mediaType as 'image/jpeg' | 'image/png' | 'image/webp',
           data: img.data,
         },
       });
     }
-
-    content.push({
-      type: 'text',
-      text: '請分析以上相片，return JSON結果（只return JSON，唔好其他嘢）。',
-    });
+    content.push({ type: 'text', text: '請分析以上相片，return JSON結果（只return JSON）。' });
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 1024,
+      max_tokens: 1200,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content }],
     });
 
-    // Extract text
     const textBlock = response.content.find((b) => b.type === 'text');
     if (!textBlock || textBlock.type !== 'text') {
-      return NextResponse.json(
-        { error: 'No text response from Claude' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'No response from Claude' }, { status: 500 });
     }
 
-    // Parse JSON (strip code fences defensively just in case)
     const cleaned = textBlock.text
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim();
+      .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
 
     let result: OcrResult;
     try {
       result = JSON.parse(cleaned);
     } catch {
-      return NextResponse.json(
-        { error: 'Failed to parse Claude response', raw: cleaned },
-        { status: 500 }
+      return NextResponse.json({ error: 'Failed to parse response', raw: cleaned }, { status: 500 });
+    }
+
+    // Server-side: match suggested_category to user's actual category list
+    if (result.suggested_category) {
+      const { data: cats } = await supabase
+        .from('categories')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .not('parent_id', 'is', null); // only leaf categories
+
+      const matched = cats?.find((c) =>
+        c.name === result.suggested_category ||
+        c.name.includes(result.suggested_category!) ||
+        result.suggested_category!.includes(c.name)
       );
+      (result as OcrResult & { matched_category_id?: string }).matched_category_id = matched?.id ?? undefined;
     }
 
     return NextResponse.json({ result });
   } catch (error) {
     console.error('OCR error:', error);
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
