@@ -79,6 +79,8 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
     opened_date: (source?.opened_date as string) ?? '',
     status:      source?.status ?? 'unopened',
     location:    (source?.location as string) ?? '',
+    price:       source?.price?.toString() ?? '',
+    currency:    (source?.currency as string) ?? 'HKD',
     notes:       (source?.notes as string) ?? '',
   });
 
@@ -125,6 +127,8 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
       opened_date: form.opened_date || null,
       status:      form.status as Product['status'],
       location:    form.location.trim() || null,
+      price:       form.price ? parseFloat(form.price) : null,
+      currency:    form.currency || 'HKD',
       notes:       notesWithShade.trim() || null,
     };
 
@@ -384,6 +388,24 @@ export default function ProductForm({ categories, mode, product, initial }: Prop
         <input id="location" type="text" value={form.location}
           onChange={(e) => update('location', e.target.value)}
           className="input" placeholder="例如：梳妝台、浴室、旅行包" />
+      </div>
+
+      <div>
+        <label className="label" htmlFor="price">購買價格（選填）</label>
+        <div className="flex gap-2">
+          <select value={form.currency}
+            onChange={(e) => update('currency', e.target.value)}
+            className="input" style={{ width: 90, flexShrink: 0 }}>
+            <option value="HKD">HKD</option>
+            <option value="TWD">TWD</option>
+            <option value="CNY">CNY</option>
+            <option value="USD">USD</option>
+          </select>
+          <input id="price" type="number" min="0" step="0.01" value={form.price}
+            onChange={(e) => update('price', e.target.value)}
+            className="input flex-1" placeholder="0.00" />
+        </div>
+        <p className="text-micro text-ink-500 mt-1">用於計算鐵皮計劃的節省金額</p>
       </div>
 
       <div>
