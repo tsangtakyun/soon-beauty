@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, X, Share2, Check, Search } from 'lucide-react';
 import type { Product } from '@/types/database';
@@ -16,7 +15,8 @@ type Props = {
 };
 
 export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavings, monthLabel }: Props) {
-  const router = useRouter();
+  // Local state — don't rely on server refresh
+  const [products, setProducts] = useState<Product[]>(allActive);
   const [showPicker, setShowPicker] = useState(false);
   const [search, setSearch] = useState('');
   const [marking, setMarking] = useState<string | null>(null);
@@ -24,10 +24,9 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
   const [generatingReport, setGeneratingReport] = useState(false);
   const [reportHtml, setReportHtml] = useState<string | null>(null);
 
-  const watchlist = allActive.filter((p) => p.on_watchlist);
-  const nonWatchlist = allActive.filter((p) => !p.on_watchlist);
+  const watchlist = products.filter((p) => p.on_watchlist && (p.status === 'in_use' || p.status === 'unopened'));
+  const nonWatchlist = products.filter((p) => !p.on_watchlist && (p.status === 'in_use' || p.status === 'unopened'));
 
-  // Search filter for picker
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return nonWatchlist;
@@ -41,7 +40,8 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
     setToggling(product.id);
     const supabase = createClient();
     await supabase.from('products').update({ on_watchlist: true }).eq('id', product.id);
-    router.refresh();
+    // Update local state immediately
+    setProducts((prev) => prev.map((p) => p.id === product.id ? { ...p, on_watchlist: true } : p));
     setToggling(null);
     setShowPicker(false);
     setSearch('');
@@ -51,7 +51,7 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
     setToggling(product.id);
     const supabase = createClient();
     await supabase.from('products').update({ on_watchlist: false }).eq('id', product.id);
-    router.refresh();
+    setProducts((prev) => prev.map((p) => p.id === product.id ? { ...p, on_watchlist: false } : p));
     setToggling(null);
   }
 
@@ -62,14 +62,14 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
       status: 'finished',
       on_watchlist: false,
     }).eq('id', product.id);
-    router.refresh();
+    // Remove from local state (move to finished = no longer active)
+    setProducts((prev) => prev.filter((p) => p.id !== product.id));
     setMarking(null);
   }
 
   async function generateReport() {
     setGeneratingReport(true);
     setReportHtml(null);
-
     const prompt = `你係Lama，Fini app嘅貓咪美容管家。幫用家生成一個「${monthLabel}鐵皮報告」HTML卡片。
 
 數據：
@@ -80,11 +80,11 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
 要求：
 - 只return純HTML（唔好markdown唔好code fence）
 - 固定寬度480px，可以截圖分享
-- 用Fini品牌色：背景 #FAFAF8，深色文字 #1A1218，玫瑰 #B06070，字體用system-ui
-- 頂部有「FINI ®」（letter-spacing寬一點）同「${monthLabel} 鐵皮報告」
-- 中間大數字顯示用完件數，Lama說一句廣東話鼓勵說話（親切有趣）
-- 底部列出本月鐵皮清單（每行一件）
-- 整體padding 32px，設計簡潔靚靚，可以直接截圖post小紅書/IG`;
+- 背景 #FAFAF8，深色文字 #1A1218，玫瑰 #B06070，字體用system-ui sans-serif
+- 頂部「FINI ®」logo（letter-spacing 0.15em）同「${monthLabel} 鐵皮報告」副標題
+- 中間大數字顯示用完件數，Lama說一句廣東話鼓勵（親切有趣，例如：「好叻呀！又用完X支，繼續加油呀～ 🐱」）
+- 底部列出本月鐵皮清單（每行一件，細字）
+- 整體padding 32px，設計簡潔靚靚，border 0.5px solid #E0D4D8`;
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -114,7 +114,7 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
         <div className="flex items-center justify-between p-4" style={{ borderBottom: '0.5px solid #E0D4D8' }}>
           <div>
             <div className="flex items-center gap-2">
-              <h2 style={{ fontSize: 15, fontWeight: 500, color: '#1A1218', margin: 0 }}>鐵皮清單</h2>
+              <span style={{ fontSize: 15, fontWeight: 500, color: '#1A1218' }}>鐵皮清單</span>
               <span className="text-micro px-1.5 py-0.5 rounded-full"
                 style={{ background: '#F0E4E8', color: '#9A7080' }}>
                 {watchlist.length}/{MAX_WATCHLIST}
@@ -125,7 +125,7 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
           {watchlist.length < MAX_WATCHLIST && (
             <button
               onClick={() => { setShowPicker(true); setSearch(''); }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption transition-all"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption"
               style={{ background: '#F0E4E8', color: '#7A5060' }}
             >
               <Plus style={{ width: 13, height: 13 }} />加入
@@ -133,7 +133,6 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
           )}
         </div>
 
-        {/* Watchlist items */}
         {watchlist.length === 0 ? (
           <div className="p-6 text-center">
             <p className="text-caption" style={{ color: '#B09898' }}>
@@ -146,13 +145,12 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
               <div key={p.id} className="flex items-center gap-3 p-3"
                 style={{ borderBottom: '0.5px solid #F5EEF0' }}>
                 {p.photo_url ? (
-                  <img src={p.photo_url} alt={p.name}
-                    className="rounded object-cover flex-shrink-0"
+                  <img src={p.photo_url} alt={p.name} className="rounded object-cover flex-shrink-0"
                     style={{ width: 40, height: 40 }} />
                 ) : (
                   <div className="rounded flex-shrink-0 flex items-center justify-center"
-                    style={{ width: 40, height: 40, background: '#E8E0E4', color: '#5A4050', fontSize: 16,
-                      fontFamily: "'Cormorant Garamond', serif" }}>
+                    style={{ width: 40, height: 40, background: '#E8E0E4', color: '#5A4050',
+                      fontSize: 16, fontFamily: "'Cormorant Garamond', serif" }}>
                     {p.name.slice(0, 1)}
                   </div>
                 )}
@@ -161,19 +159,14 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
                   <div className="text-micro" style={{ color: '#9A7080' }}>{p.brand ?? '—'}</div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button
-                    onClick={() => markFinished(p)}
-                    disabled={marking === p.id}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro transition-all"
-                    style={{ background: '#E8F4EC', color: '#2E7A4A' }}
-                  >
+                  <button onClick={() => markFinished(p)} disabled={marking === p.id}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro"
+                    style={{ background: '#E8F4EC', color: '#2E7A4A' }}>
                     <Check style={{ width: 11, height: 11 }} />
                     {marking === p.id ? '標記中...' : '用完了'}
                   </button>
-                  <button onClick={() => removeFromWatchlist(p)}
-                    disabled={toggling === p.id}
-                    className="p-1 rounded-full transition-colors"
-                    style={{ color: '#C8B4BC' }}>
+                  <button onClick={() => removeFromWatchlist(p)} disabled={toggling === p.id}
+                    className="p-1 rounded-full" style={{ color: '#C8B4BC' }}>
                     <X style={{ width: 14, height: 14 }} />
                   </button>
                 </div>
@@ -185,15 +178,12 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
 
       {/* Picker modal */}
       {showPicker && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
           style={{ background: 'rgba(26,18,24,0.5)' }}
-          onClick={(e) => { if (e.target === e.currentTarget) { setShowPicker(false); setSearch(''); } }}
-        >
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowPicker(false); setSearch(''); } }}>
           <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl overflow-hidden"
             style={{ background: '#FAFAF8', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
 
-            {/* Modal header */}
             <div className="flex items-center justify-between p-4"
               style={{ borderBottom: '0.5px solid #E0D4D8' }}>
               <div>
@@ -208,24 +198,16 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
               </button>
             </div>
 
-            {/* Search */}
             <div className="p-3" style={{ borderBottom: '0.5px solid #F0E8EC' }}>
               <div className="relative">
                 <Search style={{ width: 14, height: 14, position: 'absolute', left: 12, top: '50%',
                   transform: 'translateY(-50%)', color: '#B09898' }} />
-                <input
-                  type="text"
-                  placeholder="搜尋產品名稱或品牌..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  autoFocus
-                  className="input"
-                  style={{ paddingLeft: 34, fontSize: 13 }}
-                />
+                <input type="text" placeholder="搜尋產品名稱或品牌..."
+                  value={search} onChange={(e) => setSearch(e.target.value)}
+                  autoFocus className="input" style={{ paddingLeft: 34, fontSize: 13 }} />
               </div>
             </div>
 
-            {/* Product list */}
             <div style={{ overflowY: 'auto', flex: 1 }}>
               {filtered.length === 0 ? (
                 <div className="p-8 text-center">
@@ -235,21 +217,17 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
                 </div>
               ) : (
                 filtered.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => addToWatchlist(p)}
+                  <button key={p.id} onClick={() => addToWatchlist(p)}
                     disabled={toggling === p.id}
-                    className="w-full flex items-center gap-3 p-3 text-left transition-colors"
-                    style={{ borderBottom: '0.5px solid #F5EEF0' }}
-                  >
+                    className="w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-pink-50"
+                    style={{ borderBottom: '0.5px solid #F5EEF0' }}>
                     {p.photo_url ? (
-                      <img src={p.photo_url} alt={p.name}
-                        className="rounded object-cover flex-shrink-0"
+                      <img src={p.photo_url} alt={p.name} className="rounded object-cover flex-shrink-0"
                         style={{ width: 40, height: 40 }} />
                     ) : (
                       <div className="rounded flex-shrink-0 flex items-center justify-center"
-                        style={{ width: 40, height: 40, background: '#E8E0E4', color: '#5A4050', fontSize: 16,
-                          fontFamily: "'Cormorant Garamond', serif" }}>
+                        style={{ width: 40, height: 40, background: '#E8E0E4', color: '#5A4050',
+                          fontSize: 16, fontFamily: "'Cormorant Garamond', serif" }}>
                         {p.name.slice(0, 1)}
                       </div>
                     )}
@@ -280,12 +258,9 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
               </p>
             )}
           </div>
-          <button
-            onClick={generateReport}
-            disabled={generatingReport}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption transition-all"
-            style={{ background: '#B06070', color: '#FDF8F6', opacity: generatingReport ? 0.7 : 1 }}
-          >
+          <button onClick={generateReport} disabled={generatingReport}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption"
+            style={{ background: '#B06070', color: '#FDF8F6', opacity: generatingReport ? 0.7 : 1 }}>
             <Share2 style={{ width: 13, height: 13 }} />
             {generatingReport ? '生成中...' : '生成報告'}
           </button>
