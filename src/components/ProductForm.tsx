@@ -8,8 +8,10 @@ import { zhHK } from 'date-fns/locale';
 import { Check, Pencil } from 'lucide-react';
 import type { Product, Category } from '@/types/database';
 
+type InitialValues = Partial<Product> & { category_id?: string | null };
+
 type Props =
-  | { mode: 'create'; categories: Category[]; product?: never; initial?: Partial<Product> }
+  | { mode: 'create'; categories: Category[]; product?: never; initial?: InitialValues }
   | { mode: 'edit'; categories: Category[]; product: Product; initial?: never };
 
 type FormMode = 'edit' | 'preview';
