@@ -20,6 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <NavLink href="/products"     label="產品" />
             <NavLink href="/calendar"     label="日曆" />
             <NavLink href="/analyze"      label="分析成份" />
+            <NavLink href="/skin-tone"    label="色彩分析" />
             <NavLink href="/empty-bottle" label="鐵皮計劃" />
             <NavLink href="/settings"     label="設定" />
           </nav>
