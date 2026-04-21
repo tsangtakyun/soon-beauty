@@ -18,7 +18,9 @@ type OcrResult = {
   production_date_reasoning: string | null;
   computed_expiry_date: string | null;
   computed_expiry_reasoning: string | null;
+  expiry_warning: boolean;
   suggested_category: string | null;
+  matched_category_id?: string;
   confidence: {
     name: Confidence;
     brand: Confidence;
@@ -28,19 +30,28 @@ type OcrResult = {
   notes: string | null;
 };
 
-// 分類名稱列表（同DB一致）
+type IngredientsResult = {
+  inci_list: string[];
+  key_ingredients: { name: string; benefit: string; concern?: string }[];
+  concerns: string[];
+  suitable_for: string[];
+  avoid_if: string[];
+  overall_rating: 'gentle' | 'moderate' | 'active' | 'unknown';
+};
+
 const CATEGORY_LIST = [
   '卸妝','潔面','爽膚水','精華','面霜','眼霜','防曬','面膜','其他面部護理',
   '妝前底霜','粉底','遮瑕','定妝','提亮／高光','腮紅','修容','眉毛',
   '眼影','眼線','睫毛膏','唇妝','其他彩妝',
-  '沐浴','身體乳','護手霜','香水','頭髮護理','其他身體護理',
+  '沐浴','身體乳','護手霜','香水','頭髮護理','指甲油','其他身體護理',
 ];
 
-const SYSTEM_PROMPT = `你係一個化妝品/護膚品產品資料抽取專家。用戶會提供最多3張產品包裝嘅相：
+const TODAY = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-1. **front** — 產品正面，有產品名同品牌
-2. **bottom** — 產品底部，有PAO符號同批號
-3. **expiry** — 到期日標示
+const OCR_SYSTEM_PROMPT = `你係一個化妝品/護膚品產品資料抽取專家。用戶會提供最多3張產品包裝嘅相：
+1. front — 產品正面，有產品名同品牌
+2. bottom — 產品底部，有批號/日期
+3. expiry — 到期日標示
 
 Return PURE JSON（唔好有任何其他文字、markdown、code fence）：
 
@@ -49,13 +60,12 @@ Return PURE JSON（唔好有任何其他文字、markdown、code fence）：
   "brand": "品牌名",
   "pao_months": 12,
   "pao_source": "seen",
-  "expiry_date": "2027-03-15",
+  "visible_date": "2027-03-15",
+  "visible_date_is_future": true,
   "batch_code": "批號",
-  "production_date": "2024-09-01",
-  "production_date_confidence": "medium",
-  "production_date_reasoning": "推算說明",
-  "computed_expiry_date": "2025-09-01",
-  "computed_expiry_reasoning": "計算說明",
+  "production_date": null,
+  "production_date_confidence": "none",
+  "production_date_reasoning": null,
   "suggested_category": "精華",
   "confidence": {
     "name": "high",
@@ -67,86 +77,53 @@ Return PURE JSON（唔好有任何其他文字、markdown、code fence）：
 }
 
 ═══════════════════════════════
-PAO 識別規則（最重要，請仔細閱讀）
+日期處理邏輯（最重要）
 ═══════════════════════════════
 
-PAO = Period After Opening，即開封後保質期。
+今日日期係 ${TODAY}。
 
-**PAO符號形式（全部都要識別）：**
-- 開蓋罐仔圖示內寫住數字：6M、12M、18M、24M、36M
-- 文字形式："After opening use within 12 months"
-- 簡寫："12 Months"、"12 mths"、"Use within 12M"
-- 中文："開封後12個月內使用"、"开封后请于12个月内用完"
-- 日文："開封後12ヶ月以内に使用"
-- 韓文："개봉 후 12개월"
-- 數字+M/m：任何包裝上孤立出現嘅"6M""12M""24M"等
+**包裝上嘅日期：**
+- 將所有見到嘅日期填入 visible_date（YYYY-MM-DD格式）
+- visible_date_is_future：呢個日期係咪在今日之後？true/false
+- 如果見到嘅日期係今日之後 → 就係過期日，唔需要推算，直接用
+- 如果見到嘅日期係今日之前 → 唔確定係生產日定過期日，忽略，改用批號推算
+- 如果完全冇日期 → 用批號推算
 
-**PAO搵唔到時嘅處理：**
-如果相片中真係搵唔到任何PAO標示，根據產品類型估算：
-- 精華、面霜、眼霜：12個月
-- 防曬：12個月
-- 洗面奶、潔面：12個月
-- 面膜（片裝）：3年（未開封），開封即用
-- 唇膏、唇彩：12-24個月
-- 眼影、腮紅（乾粉）：24個月
-- 睫毛膏：3-6個月
-- 沐浴、洗髮：24-36個月
-- 香水：36個月以上
+**批號推算生產日期：**
+- P&G（H&S、Pantene、Olay）：YYDDD或YYWW格式
+- L'Oréal集團：BYYYYDDD格式
+- Unilever：年月日組合
+- Estée Lauder集團：字母+數字
+- 日本品牌：直接印生產年月
+- 韓國品牌：直接印日期
+- 推算出嚟嘅生產日期必須係今日之前，否則係判斷錯誤要重試
+- 如果YYWW格式推算係未來，試交換YY同WW再推算
 
-估算時：pao_months填估算值，pao_source填"estimated"，confidence.pao_months填"low"
+**PAO：**
+- 搵開蓋罐仔圖示、文字"After opening X months"、"開封後X個月"等
+- 搵唔到 → 根據產品類別估算（精華/面霜12M、眼影24M、睫毛膏3-6M、沐浴/洗髮24-36M）
+- pao_source: "seen"（見到）或 "estimated"（估算）
 
-**見到PAO時：** pao_source填"seen"，confidence.pao_months填"high"或"medium"
+**分類建議：**
+從以下揀最合適：${CATEGORY_LIST.join('、')}`;
 
-═══════════════════════════════
-分類建議規則
-═══════════════════════════════
+const INGREDIENTS_SYSTEM_PROMPT = `你係一個化妝品成份分析專家。分析產品包裝上嘅成份表（INCI list）。
 
-根據產品名稱同品牌，從以下列表揀最合適嘅一個：
-${CATEGORY_LIST.join('、')}
+Return PURE JSON：
+{
+  "inci_list": ["Aqua", "Glycerin", ...],
+  "key_ingredients": [
+    {"name": "Retinol", "benefit": "抗衰老、促進細胞更新", "concern": "孕婦避免使用"},
+    {"name": "Niacinamide", "benefit": "美白、收毛孔"}
+  ],
+  "concerns": ["含酒精，敏感肌慎用", "含香料"],
+  "suitable_for": ["油性肌", "混合肌"],
+  "avoid_if": ["孕婦", "對水楊酸敏感"],
+  "overall_rating": "gentle"
+}
 
-例子：
-- "Water Sleeping Mask" → 面膜
-- "Moisture Surge Moisturizer" → 面霜
-- "Retinol Serum" → 精華
-- "Foundation" / "BB Cream" → 粉底
-- "Eyeshadow Palette" → 眼影
-- "Lipstick" / "Lip Tint" → 唇妝
-- "Shampoo" / "Conditioner" → 頭髮護理
-- "Body Lotion" → 身體乳
-- "Sunscreen" / "SPF" → 防曬
-- "Blush" → 腮紅
-- "Mascara" → 睫毛膏
-
-唔確定就填null。
-
-═══════════════════════════════
-批號解碼規則
-═══════════════════════════════
-- P&G（H&S、Pantene、Olay、SK-II）：YYDDD或YYWW格式
-- L'Oréal集團（L'Oréal、Maybelline、Garnier、Kiehl's、Lancome）：BYYYYDDD格式
-- Unilever（Dove、Vaseline）：年月日組合
-- Estée Lauder集團（MAC、Clinique、Bobbi Brown）：字母+數字
-- 日本品牌（Shiseido、KOSÉ）：直接印生產年月
-- 韓國品牌（Innisfree、Laneige、COSRX）：直接印日期
-
-═══════════════════════════════
-過期日推算
-═══════════════════════════════
-- production_date + pao_months = computed_expiry_date
-- 格式：YYYY-MM-DD
-- computed_expiry_reasoning用繁體中文解釋
-
-**⚠️ 生產日期必須係過去（非常重要）：**
-- 生產日期絕對唔可以係未來日期，必須早於今日
-- 如果推算出嚟係未來，代表年份同週數判斷反咗，要交換重試
-- 例如批號「2723」：試「YY=27,WW=23 → 2027年第23週」→ 係未來 → 錯！改試「YY=23,WW=27 → 2023年第27週」→ 係過去 → 正確
-- 如果兩種解讀都係過去，揀更近期（更大年份）嗰個
-- 如果完全判斷唔到令結果係過去，填null + confidence="none"，唔好亂估未來日期
-
-**重要規則：**
-- 睇唔到就填null，PAO除外（估算）
-- expiry_date只係包裝上印嘅，唔係計算出嚟嘅
-- notes用繁體中文`;
+overall_rating: gentle（溫和）/ moderate（中等）/ active（活性成份多）/ unknown（睇唔清）
+用繁體中文寫benefit、concern、concerns、suitable_for、avoid_if。`;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -156,64 +133,146 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const images: { type: string; data: string; mediaType: string }[] = body.images;
-
     if (!images || images.length === 0) {
       return NextResponse.json({ error: 'At least one image required' }, { status: 400 });
     }
 
-    const content: Anthropic.Messages.ContentBlockParam[] = [];
+    // Build content for OCR
+    const ocrContent: Anthropic.Messages.ContentBlockParam[] = [];
     for (const img of images) {
-      content.push({ type: 'text', text: `[${img.type.toUpperCase()}]` });
-      content.push({
+      ocrContent.push({ type: 'text', text: `[${img.type.toUpperCase()}]` });
+      ocrContent.push({
         type: 'image',
-        source: {
-          type: 'base64',
-          media_type: img.mediaType as 'image/jpeg' | 'image/png' | 'image/webp',
-          data: img.data,
-        },
+        source: { type: 'base64', media_type: img.mediaType as 'image/jpeg' | 'image/png' | 'image/webp', data: img.data },
       });
     }
-    content.push({ type: 'text', text: '請分析以上相片，return JSON結果（只return JSON）。' });
+    ocrContent.push({ type: 'text', text: '請分析以上相片，return JSON結果（只return JSON）。' });
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 1200,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content }],
-    });
+    // Run OCR + Ingredients analysis in parallel
+    const [ocrResponse, ingredientsResponse] = await Promise.all([
+      anthropic.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1200,
+        system: OCR_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: ocrContent }],
+      }),
+      anthropic.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1200,
+        system: INGREDIENTS_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: [
+          ...ocrContent.slice(0, -1), // same images
+          { type: 'text', text: '請分析成份表，return JSON結果（只return JSON）。如果相片中見唔到成份表，return {"inci_list":[],"key_ingredients":[],"concerns":[],"suitable_for":[],"avoid_if":[],"overall_rating":"unknown"}' },
+        ]}],
+      }),
+    ]);
 
-    const textBlock = response.content.find((b) => b.type === 'text');
-    if (!textBlock || textBlock.type !== 'text') {
-      return NextResponse.json({ error: 'No response from Claude' }, { status: 500 });
+    // Parse OCR
+    const ocrText = ocrResponse.content.find((b) => b.type === 'text');
+    if (!ocrText || ocrText.type !== 'text') {
+      return NextResponse.json({ error: 'No OCR response' }, { status: 500 });
+    }
+    const ocrCleaned = ocrText.text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+    let rawOcr: Record<string, unknown>;
+    try { rawOcr = JSON.parse(ocrCleaned); }
+    catch { return NextResponse.json({ error: 'Failed to parse OCR', raw: ocrCleaned }, { status: 500 }); }
+
+    // Parse Ingredients
+    const ingText = ingredientsResponse.content.find((b) => b.type === 'text');
+    let ingredientsResult: IngredientsResult | null = null;
+    if (ingText && ingText.type === 'text') {
+      try {
+        const ingCleaned = ingText.text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+        ingredientsResult = JSON.parse(ingCleaned);
+      } catch { ingredientsResult = null; }
     }
 
-    const cleaned = textBlock.text
-      .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+    // Apply date logic
+    const visibleDate = rawOcr.visible_date as string | null;
+    const visibleDateIsFuture = rawOcr.visible_date_is_future as boolean | null;
+    const productionDate = rawOcr.production_date as string | null;
+    const paoMonths = rawOcr.pao_months as number | null;
 
-    let result: OcrResult;
-    try {
-      result = JSON.parse(cleaned);
-    } catch {
-      return NextResponse.json({ error: 'Failed to parse response', raw: cleaned }, { status: 500 });
+    let expiry_date: string | null = null;
+    let computed_expiry_date: string | null = null;
+    let computed_expiry_reasoning: string | null = null;
+    let expiry_warning = false;
+
+    if (visibleDate && visibleDateIsFuture) {
+      // Clear future date → direct expiry, no calculation needed
+      expiry_date = visibleDate;
+    } else {
+      // No clear future date → use batch code production date
+      if (productionDate) {
+        const prodDateObj = new Date(productionDate);
+        if (paoMonths) {
+          const expDate = new Date(prodDateObj);
+          expDate.setMonth(expDate.getMonth() + paoMonths);
+          computed_expiry_date = expDate.toISOString().split('T')[0];
+          computed_expiry_reasoning = `生產日期 ${productionDate} + PAO ${paoMonths}個月 = ${computed_expiry_date}`;
+        } else {
+          // Default 5 years for unopened products
+          const expDate = new Date(prodDateObj);
+          expDate.setFullYear(expDate.getFullYear() + 5);
+          computed_expiry_date = expDate.toISOString().split('T')[0];
+          computed_expiry_reasoning = `生產日期 ${productionDate} + 未開封預設保質期5年 = ${computed_expiry_date}`;
+        }
+      }
     }
 
-    // Server-side: match suggested_category to user's actual category list
-    if (result.suggested_category) {
+    // Check if computed expiry is in the past → warning
+    if (computed_expiry_date && computed_expiry_date < TODAY) {
+      expiry_warning = true;
+    }
+
+    // Match category
+    let matched_category_id: string | undefined;
+    if (rawOcr.suggested_category) {
       const { data: cats } = await supabase
         .from('categories')
         .select('id, name')
         .eq('user_id', user.id)
-        .not('parent_id', 'is', null); // only leaf categories
-
+        .not('parent_id', 'is', null);
       const matched = cats?.find((c) =>
-        c.name === result.suggested_category ||
-        c.name.includes(result.suggested_category!) ||
-        result.suggested_category!.includes(c.name)
+        c.name === rawOcr.suggested_category ||
+        c.name.includes(rawOcr.suggested_category as string) ||
+        (rawOcr.suggested_category as string).includes(c.name)
       );
-      (result as OcrResult & { matched_category_id?: string }).matched_category_id = matched?.id ?? undefined;
+      matched_category_id = matched?.id;
     }
 
-    return NextResponse.json({ result });
+    // Get user's color profile for makeup compatibility check
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('color_profile')
+      .eq('id', user.id)
+      .single();
+    const colorProfile = profile?.color_profile ?? null;
+
+    const result: OcrResult = {
+      name: rawOcr.name as string | null,
+      brand: rawOcr.brand as string | null,
+      pao_months: paoMonths,
+      pao_source: rawOcr.pao_source as 'seen' | 'estimated' | null,
+      expiry_date,
+      batch_code: rawOcr.batch_code as string | null,
+      production_date: productionDate,
+      production_date_confidence: rawOcr.production_date_confidence as Confidence ?? 'none',
+      production_date_reasoning: rawOcr.production_date_reasoning as string | null,
+      computed_expiry_date,
+      computed_expiry_reasoning,
+      expiry_warning,
+      suggested_category: rawOcr.suggested_category as string | null,
+      matched_category_id,
+      confidence: rawOcr.confidence as OcrResult['confidence'] ?? { name: 'none', brand: 'none', pao_months: 'none', expiry_date: 'none' },
+      notes: rawOcr.notes as string | null,
+    };
+
+    return NextResponse.json({
+      result,
+      ingredients: ingredientsResult,
+      color_profile: colorProfile,
+    });
   } catch (error) {
     console.error('OCR error:', error);
     return NextResponse.json(

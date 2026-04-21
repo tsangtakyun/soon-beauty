@@ -60,6 +60,7 @@ export type Database = {
           category_id: string | null;
           tags: string[] | null;
           on_watchlist: boolean | null;
+          ingredients_analysis: Record<string, unknown> | null;
           name: string;
           brand: string | null;
           barcode: string | null;
@@ -82,6 +83,7 @@ export type Database = {
           category_id?: string | null;
           tags?: string[] | null;
           on_watchlist?: boolean | null;
+          ingredients_analysis?: Record<string, unknown> | null;
           name: string;
           brand?: string | null;
           barcode?: string | null;

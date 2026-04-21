@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Sparkles, AlertCircle, RefreshCw, Save } from 'lucide-react';
+import { ArrowLeft, Sparkles, AlertCircle, RefreshCw, Save, AlertTriangle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import CameraCapture, { type CapturedImage } from './CameraCapture';
 import ProductForm from './ProductForm';
 import type { Product } from '@/types/database';
 
-type Category = { id: string; name: string; color: string };
+type Category = { id: string; name: string; color: string; parent_id?: string | null; sort_order?: number };
 type Confidence = 'high' | 'medium' | 'low' | 'none';
 
 type OcrResult = {
@@ -24,16 +24,27 @@ type OcrResult = {
   production_date_reasoning: string | null;
   computed_expiry_date: string | null;
   computed_expiry_reasoning: string | null;
+  expiry_warning: boolean;
   suggested_category: string | null;
   matched_category_id?: string;
-  confidence: {
-    name: Confidence;
-    brand: Confidence;
-    pao_months: Confidence;
-    expiry_date: Confidence;
-  };
+  confidence: { name: Confidence; brand: Confidence; pao_months: Confidence; expiry_date: Confidence };
   notes: string | null;
 };
+
+type IngredientsResult = {
+  inci_list: string[];
+  key_ingredients: { name: string; benefit: string; concern?: string }[];
+  concerns: string[];
+  suitable_for: string[];
+  avoid_if: string[];
+  overall_rating: 'gentle' | 'moderate' | 'active' | 'unknown';
+};
+
+type ColorProfile = {
+  season: 'spring' | 'summer' | 'autumn' | 'winter';
+  warm_cool: 'warm' | 'cool' | 'neutral';
+  suitable_shades: string[];
+} | null;
 
 type Stage = 'intro' | 'capturing' | 'analyzing' | 'result' | 'form' | 'error';
 
@@ -47,18 +58,27 @@ async function uploadFrontPhoto(base64: string): Promise<string | null> {
     for (let i = 0; i < byteString.length; i++) bytes[i] = byteString.charCodeAt(i);
     const blob = new Blob([bytes], { type: 'image/jpeg' });
     const filename = `${user.id}/${Date.now()}-front.jpg`;
-    const { error } = await supabase.storage.from('product-photos').upload(filename, blob, { contentType: 'image/jpeg', upsert: false });
+    const { error } = await supabase.storage.from('product-photos').upload(filename, blob, { contentType: 'image/jpeg' });
     if (error) return null;
     const { data: urlData } = supabase.storage.from('product-photos').getPublicUrl(filename);
     return urlData?.publicUrl ?? null;
   } catch { return null; }
 }
 
+const RATING_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  gentle:   { label: '溫和', color: '#2E7A4A', bg: '#E8F4EC' },
+  moderate: { label: '中等', color: '#C06030', bg: '#FDF0E8' },
+  active:   { label: '活性', color: '#3A68B0', bg: '#E8F0FB' },
+  unknown:  { label: '未知', color: '#9A7080', bg: '#F0E8EC' },
+};
+
 export default function ScanProductForm({ categories }: { categories: Category[] }) {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>('intro');
   const [attempt, setAttempt] = useState(1);
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
+  const [ingredients, setIngredients] = useState<IngredientsResult | null>(null);
+  const [colorProfile, setColorProfile] = useState<ColorProfile>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [quickSaving, setQuickSaving] = useState(false);
@@ -68,6 +88,7 @@ export default function ScanProductForm({ categories }: { categories: Category[]
     setStage('analyzing');
     setErrorMsg(null);
     const frontImage = images.find((img) => img.type === 'front');
+
     const [ocrResponse, uploadedUrl] = await Promise.all([
       fetch('/api/ocr', {
         method: 'POST',
@@ -78,6 +99,7 @@ export default function ScanProductForm({ categories }: { categories: Category[]
       }),
       frontImage ? uploadFrontPhoto(frontImage.base64) : Promise.resolve(null),
     ]);
+
     if (uploadedUrl) setPhotoUrl(uploadedUrl);
     if (!ocrResponse.ok) {
       const data = await ocrResponse.json().catch(() => ({}));
@@ -85,50 +107,45 @@ export default function ScanProductForm({ categories }: { categories: Category[]
       setStage('error');
       return;
     }
+
     const data = await ocrResponse.json();
     setOcrResult(data.result);
+    setIngredients(data.ingredients ?? null);
+    setColorProfile(data.color_profile ?? null);
     setStage('result');
   }
 
-  // Quick save — save product directly without going through form
   async function quickSave() {
-    if (!ocrResult || !ocrResult.name) return;
+    if (!ocrResult?.name) return;
     setQuickSaving(true);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setQuickSaving(false); return; }
 
-    const { data, error } = await supabase
-      .from('products')
-      .insert({
-        user_id: user.id,
-        name: ocrResult.name,
-        brand: ocrResult.brand ?? null,
-        pao_months: ocrResult.pao_months ?? null,
-        expiry_date: ocrResult.expiry_date ?? ocrResult.computed_expiry_date ?? null,
-        photo_url: photoUrl ?? null,
-        category_id: ocrResult.matched_category_id ?? null,
-        status: 'unopened',
-        notes: [
-          ocrResult.batch_code ? `批號：${ocrResult.batch_code}` : null,
-          ocrResult.production_date ? `生產日期：${ocrResult.production_date}` : null,
-          ocrResult.pao_source === 'estimated' ? `PAO 係根據產品類別估算，請核實` : null,
-          ocrResult.computed_expiry_reasoning ?? null,
-        ].filter(Boolean).join('\n') || null,
-      })
-      .select('id')
-      .single();
+    const { data, error } = await supabase.from('products').insert({
+      user_id: user.id,
+      name: ocrResult.name,
+      brand: ocrResult.brand ?? null,
+      pao_months: ocrResult.pao_months ?? null,
+      expiry_date: ocrResult.expiry_date ?? ocrResult.computed_expiry_date ?? null,
+      photo_url: photoUrl ?? null,
+      category_id: ocrResult.matched_category_id ?? null,
+      status: 'unopened',
+      ingredients_analysis: ingredients ?? null,
+      notes: [
+        ocrResult.batch_code ? `批號：${ocrResult.batch_code}` : null,
+        ocrResult.production_date ? `生產日期：${ocrResult.production_date}` : null,
+        ocrResult.pao_source === 'estimated' ? 'PAO 係根據產品類別估算，請核實' : null,
+        ocrResult.computed_expiry_reasoning ?? null,
+      ].filter(Boolean).join('\n') || null,
+    }).select('id').single();
 
     setQuickSaving(false);
     if (!error && data) {
       setQuickSaved(true);
-      setTimeout(() => router.push(`/products/${data.id}`), 1000);
+      setTimeout(() => router.push(`/products/${data.id}`), 800);
     }
   }
-
-  function retryCapture() { setAttempt(attempt + 1); setStage('capturing'); }
-  function acceptResult() { setStage('form'); }
-  function skipToManual() { setStage('form'); }
 
   if (stage === 'intro') {
     return (
@@ -137,20 +154,20 @@ export default function ScanProductForm({ categories }: { categories: Category[]
           <ArrowLeft className="w-4 h-4" />返回
         </Link>
         <div className="card p-6 space-y-5">
-          <div className="w-12 h-12 rounded bg-brand-100 text-brand-600 flex items-center justify-center">
-            <Sparkles className="w-6 h-6" />
+          <div className="w-12 h-12 rounded" style={{ background: '#F0E4E8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Sparkles className="w-6 h-6" style={{ color: '#B06070' }} />
           </div>
           <div>
             <h1 className="fini-dash-title" style={{ fontSize: 24 }}>拍照新增產品</h1>
             <p className="text-caption text-ink-600 leading-relaxed mt-1">
-              拍攝產品包裝，AI 自動識別產品名稱、品牌、PAO、到期日，並根據批號推算生產日期及過期日子。
+              AI 自動識別產品資訊、推算過期日子，同時分析成份。
             </p>
           </div>
-          <div className="bg-ink-50 rounded p-4 text-caption text-ink-600 space-y-1">
-            <div className="font-medium text-ink-700 mb-2">📸 拍攝技巧</div>
-            <div>· 確保光線充足，避免陰影與反光</div>
-            <div>· 底部照片須包含開蓋圖示及批號</div>
-            <div>· 成份表另外使用「分析成份」功能</div>
+          <div className="rounded-md p-4 text-caption space-y-1" style={{ background: '#F5F0F2', color: '#7A6068' }}>
+            <div className="font-medium mb-2" style={{ color: '#1A1218' }}>📸 拍攝技巧</div>
+            <div>· 正面：清楚拍到產品名同品牌</div>
+            <div>· 底部：包含批號同任何日期標示</div>
+            <div>· 成份：成份表清晰可見最佳</div>
           </div>
           <div className="flex gap-2">
             <button onClick={() => setStage('form')} className="btn-secondary flex-1">手動輸入</button>
@@ -161,18 +178,16 @@ export default function ScanProductForm({ categories }: { categories: Category[]
     );
   }
 
-  if (stage === 'capturing') {
-    return <CameraCapture onComplete={runOcr} onCancel={() => setStage('intro')} />;
-  }
+  if (stage === 'capturing') return <CameraCapture onComplete={runOcr} onCancel={() => setStage('intro')} />;
 
   if (stage === 'analyzing') {
     return (
       <div className="max-w-lg mx-auto pt-20 text-center space-y-4 animate-fade-in">
         <div className="inline-block animate-spin">
-          <Sparkles className="w-10 h-10 text-brand-500" />
+          <Sparkles className="w-10 h-10" style={{ color: '#B06070' }} />
         </div>
-        <h2 className="fini-dash-title" style={{ fontSize: 24 }}>正在識別產品資訊...</h2>
-        <p className="text-caption text-ink-500">AI 分析相片中，約需 10–20 秒</p>
+        <h2 className="fini-dash-title" style={{ fontSize: 22 }}>識別 + 分析成份中...</h2>
+        <p className="text-caption text-ink-500">AI 同時識別產品資訊及分析成份，約需 15–25 秒</p>
       </div>
     );
   }
@@ -181,15 +196,13 @@ export default function ScanProductForm({ categories }: { categories: Category[]
     return (
       <div className="max-w-lg mx-auto space-y-5 animate-fade-in">
         <div className="card p-6 text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 mx-auto flex items-center justify-center">
-            <AlertCircle className="w-6 h-6" />
-          </div>
+          <AlertCircle className="w-10 h-10 mx-auto" style={{ color: '#C04040' }} />
           <div>
-            <h2 className="fini-dash-title" style={{ fontSize: 22 }}>識別失敗</h2>
-            <p className="text-caption text-ink-600 mt-1">{errorMsg ?? '無法連接識別服務，請稍後再試'}</p>
+            <h2 className="fini-dash-title" style={{ fontSize: 20 }}>識別失敗</h2>
+            <p className="text-caption text-ink-600 mt-1">{errorMsg}</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={skipToManual} className="btn-secondary flex-1">手動輸入</button>
+            <button onClick={() => setStage('form')} className="btn-secondary flex-1">手動輸入</button>
             <button onClick={() => setStage('capturing')} className="btn-primary flex-1">重試</button>
           </div>
         </div>
@@ -198,123 +211,139 @@ export default function ScanProductForm({ categories }: { categories: Category[]
   }
 
   if (stage === 'result' && ocrResult) {
+    const hasNothing = !ocrResult.name && !ocrResult.brand;
     const hasLowConfidence = Object.values(ocrResult.confidence).some((c) => c === 'low' || c === 'none');
-    const hasNothing = !ocrResult.name && !ocrResult.brand && !ocrResult.pao_months && !ocrResult.expiry_date;
+    const ratingInfo = ingredients ? RATING_LABELS[ingredients.overall_rating] : null;
+
+    // Color compatibility check
+    const isMakeup = ['腮紅', '唇妝', '眼影', '提亮／高光', '修容'].includes(ocrResult.suggested_category ?? '');
+    const colorMatch = colorProfile && isMakeup ? 'check' : null;
 
     return (
       <div className="max-w-lg mx-auto space-y-4 animate-fade-in">
-        <div className="card p-6 space-y-4">
-
+        <div className="card p-5 space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-brand-500" />
-              <h2 className="fini-section-title">識別結果</h2>
+              <Sparkles className="w-5 h-5" style={{ color: '#B06070' }} />
+              <span className="fini-section-title">識別結果</span>
             </div>
-            <div className="flex items-center gap-2.5">
-              <ConfidenceBadge confidence="high" showLabel />
-              <ConfidenceBadge confidence="medium" showLabel />
-              <ConfidenceBadge confidence="low" showLabel />
+            <div className="flex items-center gap-2">
+              <ConfBadge c="high" label="準確" />
+              <ConfBadge c="medium" label="請核實" />
+              <ConfBadge c="low" label="不確定" />
             </div>
           </div>
 
-          {/* Photo preview */}
-          {photoUrl && (
-            <img src={photoUrl} alt="產品正面" className="w-full h-36 object-cover rounded-md" />
+          {photoUrl && <img src={photoUrl} alt="產品" className="w-full h-36 object-cover rounded-md" />}
+
+          {/* Expiry warning */}
+          {ocrResult.expiry_warning && (
+            <div className="flex items-start gap-2 p-3 rounded-md" style={{ background: '#FDF0E8', border: '0.5px solid #F0D4B8' }}>
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#C06030' }} />
+              <p className="text-caption" style={{ color: '#C06030' }}>
+                推算出嚟嘅過期日子係過去，可能讀取有誤，請手動核實
+              </p>
+            </div>
           )}
 
           {hasNothing ? (
-            <div className="bg-amber-50 border border-amber-200 rounded p-4 text-caption text-amber-900">
-              未能識別任何資訊。相片可能過於模糊或光線不足。
+            <div className="p-4 rounded-md text-caption" style={{ background: '#FDF0E8', color: '#C06030' }}>
+              未能識別任何資訊，相片可能過於模糊。
             </div>
           ) : (
             <div className="divide-y divide-ink-100">
-              <ResultRow label="產品名稱" value={ocrResult.name} confidence={ocrResult.confidence.name} />
-              <ResultRow label="品牌" value={ocrResult.brand} confidence={ocrResult.confidence.brand} />
+              <ResultRow label="產品名稱" value={ocrResult.name} conf={ocrResult.confidence.name} />
+              <ResultRow label="品牌" value={ocrResult.brand} conf={ocrResult.confidence.brand} />
               <ResultRow
                 label="PAO（開封後保質期）"
                 value={ocrResult.pao_months ? `${ocrResult.pao_months} 個月` : null}
-                confidence={ocrResult.confidence.pao_months}
+                conf={ocrResult.confidence.pao_months}
                 isEstimate={ocrResult.pao_source === 'estimated'}
-                estimateReason={ocrResult.pao_source === 'estimated' ? '包裝未見PAO符號，根據產品類別估算' : undefined}
+                estimateNote="根據產品類別估算"
               />
               {ocrResult.suggested_category && (
                 <ResultRow
                   label="建議分類"
-                  value={ocrResult.suggested_category + (ocrResult.matched_category_id ? ' ✓' : ' （未能自動匹配）')}
-                  confidence={ocrResult.matched_category_id ? 'high' : 'medium'}
+                  value={ocrResult.suggested_category + (ocrResult.matched_category_id ? ' ✓' : '')}
+                  conf={ocrResult.matched_category_id ? 'high' : 'medium'}
                 />
               )}
-              <ResultRow label="包裝到期日" value={ocrResult.expiry_date} confidence={ocrResult.confidence.expiry_date} />
+              {ocrResult.expiry_date && (
+                <ResultRow label="包裝到期日" value={ocrResult.expiry_date} conf="high" />
+              )}
               {ocrResult.batch_code && (
-                <ResultRow label="批號" value={ocrResult.batch_code} confidence="high" />
+                <ResultRow label="批號" value={ocrResult.batch_code} conf="high" />
               )}
               {ocrResult.production_date && (
                 <ResultRow
                   label="生產日期"
                   value={ocrResult.production_date}
-                  confidence={ocrResult.production_date_confidence ?? 'low'}
+                  conf={ocrResult.production_date_confidence}
                   isEstimate
-                  estimateReason={ocrResult.production_date_reasoning}
+                  estimateNote={ocrResult.production_date_reasoning ?? undefined}
                 />
               )}
-              {ocrResult.computed_expiry_date && (
+              {ocrResult.computed_expiry_date && !ocrResult.expiry_date && (
                 <ResultRow
                   label="推算過期日子"
                   value={ocrResult.computed_expiry_date}
-                  confidence={ocrResult.production_date_confidence ?? 'low'}
+                  conf={ocrResult.production_date_confidence}
                   isEstimate
-                  estimateReason={ocrResult.computed_expiry_reasoning}
+                  estimateNote={ocrResult.computed_expiry_reasoning ?? undefined}
                   highlight
+                  warning={ocrResult.expiry_warning}
                 />
               )}
               {ocrResult.notes && (
-                <div className="pt-3 text-caption text-ink-500">💡 {ocrResult.notes}</div>
+                <div className="pt-3 text-caption" style={{ color: '#9A7080' }}>💡 {ocrResult.notes}</div>
               )}
             </div>
           )}
 
-          {hasLowConfidence && attempt < 2 && (
-            <div className="bg-amber-50 border border-amber-200 rounded p-3 text-caption text-amber-900">
-              部分資訊信心度較低，是否重新拍攝以提高準確度？
+          {/* Ingredients summary */}
+          {ingredients && ingredients.inci_list.length > 0 && (
+            <div className="pt-2 border-t border-ink-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-caption font-medium" style={{ color: '#1A1218' }}>成份分析</span>
+                {ratingInfo && (
+                  <span className="text-micro px-2 py-0.5 rounded-full"
+                    style={{ background: ratingInfo.bg, color: ratingInfo.color }}>
+                    {ratingInfo.label}
+                  </span>
+                )}
+              </div>
+              {ingredients.key_ingredients.slice(0, 3).map((ing) => (
+                <div key={ing.name} className="text-micro" style={{ color: '#7A6068' }}>
+                  <span className="font-medium" style={{ color: '#1A1218' }}>{ing.name}</span>
+                  {' — '}{ing.benefit}
+                  {ing.concern && <span style={{ color: '#C06030' }}> ⚠️ {ing.concern}</span>}
+                </div>
+              ))}
+              {ingredients.concerns.length > 0 && (
+                <div className="text-micro px-2.5 py-1.5 rounded" style={{ background: '#FDF0E8', color: '#C06030' }}>
+                  {ingredients.concerns.join(' · ')}
+                </div>
+              )}
             </div>
           )}
 
           {/* Actions */}
           <div className="space-y-2 pt-1">
-            {/* Quick save button — prominent */}
             {!hasNothing && ocrResult.name && (
-              <button
-                onClick={quickSave}
-                disabled={quickSaving || quickSaved}
-                className="btn-primary w-full"
-                style={{ background: quickSaved ? '#2E7A4A' : undefined }}
-              >
+              <button onClick={quickSave} disabled={quickSaving || quickSaved} className="btn-primary w-full"
+                style={{ background: quickSaved ? '#2E7A4A' : undefined }}>
                 <Save className="w-4 h-4 mr-2" />
                 {quickSaved ? '已加入產品庫 ✓' : quickSaving ? '加入中...' : '直接加入我的產品'}
               </button>
             )}
-
             <div className="flex gap-2">
-              {(hasLowConfidence || hasNothing) && attempt < 2 ? (
-                <>
-                  <button onClick={acceptResult} className="btn-secondary flex-1">手動修正</button>
-                  <button onClick={retryCapture} className="btn-secondary flex-1">
-                    <RefreshCw className="w-4 h-4 mr-2" />重新拍攝
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button onClick={() => setStage('capturing')} className="btn-secondary flex-1">重新拍攝</button>
-                  <button onClick={acceptResult} className="btn-secondary flex-1">修改後加入</button>
-                </>
-              )}
+              <button onClick={() => setStage('capturing')} className="btn-secondary flex-1">
+                <RefreshCw className="w-4 h-4 mr-1.5" />重新拍攝
+              </button>
+              <button onClick={() => setStage('form')} className="btn-secondary flex-1">修改後加入</button>
             </div>
           </div>
-
-          {attempt >= 2 && hasLowConfidence && (
-            <p className="text-micro text-ink-500 text-center">已嘗試 2 次，建議手動補填未能識別的資訊</p>
-          )}
         </div>
       </div>
     );
@@ -328,23 +357,25 @@ export default function ScanProductForm({ categories }: { categories: Category[]
       expiry_date: ocrResult.expiry_date ?? ocrResult.computed_expiry_date ?? null,
       photo_url: photoUrl ?? null,
       category_id: ocrResult.matched_category_id ?? undefined,
+      ingredients_analysis: ingredients ?? null,
     } : {};
 
     return (
       <div className="max-w-lg mx-auto space-y-5 animate-fade-in">
-        <button onClick={() => setStage('intro')} className="inline-flex items-center gap-1 text-caption text-ink-500 hover:text-ink-800">
+        <button onClick={() => ocrResult ? setStage('result') : setStage('intro')}
+          className="inline-flex items-center gap-1 text-caption text-ink-500 hover:text-ink-800">
           <ArrowLeft className="w-4 h-4" />返回
         </button>
         <div>
-          <h1 className="fini-dash-title" style={{ fontSize: 24 }}>確認產品資訊</h1>
+          <h1 className="fini-dash-title" style={{ fontSize: 22 }}>確認產品資訊</h1>
           <p className="text-caption text-ink-500 mt-1">
             {ocrResult ? '識別結果已填入，請確認後儲存' : '請手動輸入產品資訊'}
           </p>
         </div>
         {photoUrl && (
-          <div className="flex items-center gap-3 p-3 bg-ink-50 rounded-md">
-            <img src={photoUrl} alt="產品" className="w-14 h-14 rounded object-cover flex-shrink-0" />
-            <div className="text-caption text-ink-600">✅ 產品相片已儲存</div>
+          <div className="flex items-center gap-3 p-3 rounded-md" style={{ background: '#F5F0F2' }}>
+            <img src={photoUrl} alt="產品" className="rounded object-cover flex-shrink-0" style={{ width: 48, height: 48 }} />
+            <span className="text-caption" style={{ color: '#7A6068' }}>✅ 產品相片已儲存</span>
           </div>
         )}
         <div className="card p-5">
@@ -357,45 +388,40 @@ export default function ScanProductForm({ categories }: { categories: Category[]
   return null;
 }
 
-function ConfidenceBadge({ confidence, showLabel = false }: { confidence: 'high' | 'medium' | 'low'; showLabel?: boolean }) {
-  const map = {
-    high:   { bg: 'bg-green-100',  text: 'text-green-600',  icon: '✓', label: '準確' },
-    medium: { bg: 'bg-amber-100',  text: 'text-amber-600',  icon: '!', label: '請核實' },
-    low:    { bg: 'bg-orange-100', text: 'text-orange-600', icon: '?', label: '不確定' },
-  }[confidence];
+function ConfBadge({ c, label }: { c: 'high' | 'medium' | 'low'; label: string }) {
+  const map = { high: { bg: 'bg-green-100', text: 'text-green-600', icon: '✓' }, medium: { bg: 'bg-amber-100', text: 'text-amber-600', icon: '!' }, low: { bg: 'bg-orange-100', text: 'text-orange-600', icon: '?' } }[c];
   return (
     <span className="inline-flex items-center gap-1 text-micro text-ink-400">
       <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full ${map.bg} ${map.text} text-xs font-bold`}>{map.icon}</span>
-      {showLabel && <span>{map.label}</span>}
+      {label}
     </span>
   );
 }
 
-function ResultRow({ label, value, confidence, isEstimate = false, estimateReason, highlight = false }: {
-  label: string; value: string | null; confidence: Confidence;
-  isEstimate?: boolean; estimateReason?: string | null; highlight?: boolean;
+function ResultRow({ label, value, conf, isEstimate, estimateNote, highlight, warning }: {
+  label: string; value: string | null; conf: Confidence;
+  isEstimate?: boolean; estimateNote?: string; highlight?: boolean; warning?: boolean;
 }) {
   const iconMap: Record<Confidence, { bg: string; text: string; icon: string }> = {
-    high:   { bg: 'bg-green-100',  text: 'text-green-600',  icon: '✓' },
-    medium: { bg: 'bg-amber-100',  text: 'text-amber-600',  icon: '!' },
-    low:    { bg: 'bg-orange-100', text: 'text-orange-600', icon: '?' },
-    none:   { bg: 'bg-ink-100',    text: 'text-ink-400',    icon: '—' },
+    high: { bg: 'bg-green-100', text: 'text-green-600', icon: '✓' },
+    medium: { bg: 'bg-amber-100', text: 'text-amber-600', icon: '!' },
+    low: { bg: 'bg-orange-100', text: 'text-orange-600', icon: '?' },
+    none: { bg: 'bg-ink-100', text: 'text-ink-400', icon: '—' },
   };
-  const c = iconMap[confidence];
-
+  const c = iconMap[conf];
   return (
-    <div className={`py-3 flex items-start justify-between gap-3 ${highlight ? 'bg-purple-50 -mx-1 px-1 rounded' : ''}`}>
+    <div className={`py-3 flex items-start justify-between gap-3 ${highlight ? '-mx-1 px-1 rounded' : ''}`}
+      style={highlight ? { background: warning ? '#FDF0E8' : '#F5EEF8' } : {}}>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 mb-0.5">
           <span className="text-micro text-ink-500">{label}</span>
-          {isEstimate && <span className="text-micro px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded-full">AI 推算</span>}
+          {isEstimate && <span className="text-micro px-1.5 py-0.5 rounded-full" style={{ background: '#F0E8F8', color: '#7A50A0' }}>AI 推算</span>}
         </div>
-        <div className={`text-body ${highlight ? 'font-medium text-purple-700' : 'text-ink-900'}`}>
+        <div className={`text-body ${highlight ? 'font-medium' : ''}`}
+          style={{ color: highlight ? (warning ? '#C06030' : '#7A50A0') : '#1A1218' }}>
           {value ?? <span className="text-ink-400">—</span>}
         </div>
-        {isEstimate && estimateReason && (
-          <div className="text-micro text-ink-400 mt-0.5">{estimateReason}</div>
-        )}
+        {isEstimate && estimateNote && <div className="text-micro text-ink-400 mt-0.5">{estimateNote}</div>}
       </div>
       <div className={`flex-shrink-0 mt-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full ${c.bg} ${c.text} text-xs font-bold`}>
         {c.icon}
