@@ -5,7 +5,7 @@ import { Camera, RotateCcw, Check, SkipForward, X } from 'lucide-react';
 import { compressImage } from '@/lib/image';
 
 export type CapturedImage = {
-  type: 'front' | 'bottom' | 'expiry';
+  type: 'front' | 'bottom' | 'expiry' | 'ingredients';
   base64: string;
   mediaType: 'image/jpeg';
   previewUrl: string;
@@ -28,6 +28,12 @@ const STEPS = [
     type: 'expiry' as const,
     title: '③ 到期日（如有）',
     instruction: '部分產品會印有到期日（如 EXP 03/2027）。若找不到可跳過此步驟。',
+    required: false,
+  },
+  {
+    type: 'ingredients' as const,
+    title: '④ 成份表（如有）',
+    instruction: '拍攝產品上嘅成份表（INCI list）。字體越清晰越好，AI 可以分析成份功效及注意事項。若找不到可跳過。',
     required: false,
   },
 ];

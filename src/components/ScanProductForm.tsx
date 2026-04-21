@@ -302,10 +302,17 @@ export default function ScanProductForm({ categories }: { categories: Category[]
           )}
 
           {/* Ingredients summary */}
-          {ingredients && ingredients.inci_list.length > 0 && (
+          {ingredients && (ingredients.key_ingredients.length > 0 || ingredients.concerns.length > 0) && (
             <div className="pt-2 border-t border-ink-100 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-caption font-medium" style={{ color: '#1A1218' }}>成份分析</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-caption font-medium" style={{ color: '#1A1218' }}>成份分析</span>
+                  {ingredients.inci_list.length === 0 && (
+                    <span className="text-micro px-1.5 py-0.5 rounded-full" style={{ background: '#F0E8F8', color: '#7A50A0' }}>
+                      根據產品類型估算
+                    </span>
+                  )}
+                </div>
                 {ratingInfo && (
                   <span className="text-micro px-2 py-0.5 rounded-full"
                     style={{ background: ratingInfo.bg, color: ratingInfo.color }}>
@@ -323,6 +330,11 @@ export default function ScanProductForm({ categories }: { categories: Category[]
               {ingredients.concerns.length > 0 && (
                 <div className="text-micro px-2.5 py-1.5 rounded" style={{ background: '#FDF0E8', color: '#C06030' }}>
                   {ingredients.concerns.join(' · ')}
+                </div>
+              )}
+              {ingredients.suitable_for.length > 0 && (
+                <div className="text-micro" style={{ color: '#7A6068' }}>
+                  適合：{ingredients.suitable_for.join('、')}
                 </div>
               )}
             </div>

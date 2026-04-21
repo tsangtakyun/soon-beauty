@@ -137,9 +137,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'At least one image required' }, { status: 400 });
     }
 
-    // Build content for OCR
+    // Build content for OCR (front + bottom + expiry only)
     const ocrContent: Anthropic.Messages.ContentBlockParam[] = [];
-    for (const img of images) {
+    const ingredientsImage = images.find((img) => img.type === 'ingredients');
+    const ocrImages = images.filter((img) => img.type !== 'ingredients');
+
+    for (const img of ocrImages) {
       ocrContent.push({ type: 'text', text: `[${img.type.toUpperCase()}]` });
       ocrContent.push({
         type: 'image',
@@ -147,6 +150,27 @@ export async function POST(request: Request) {
       });
     }
     ocrContent.push({ type: 'text', text: '請分析以上相片，return JSON結果（只return JSON）。' });
+
+    // Build ingredients content
+    const ingContent: Anthropic.Messages.ContentBlockParam[] = [];
+    if (ingredientsImage) {
+      ingContent.push({ type: 'text', text: '[INGREDIENTS]' });
+      ingContent.push({
+        type: 'image',
+        source: { type: 'base64', media_type: ingredientsImage.mediaType as 'image/jpeg' | 'image/png' | 'image/webp', data: ingredientsImage.data },
+      });
+      ingContent.push({ type: 'text', text: '請分析成份表，return JSON結果（只return JSON）。' });
+    } else {
+      // No ingredients image — use product info from OCR images to estimate
+      for (const img of ocrImages.slice(0, 1)) {
+        ingContent.push({ type: 'text', text: '[FRONT]' });
+        ingContent.push({
+          type: 'image',
+          source: { type: 'base64', media_type: img.mediaType as 'image/jpeg' | 'image/png' | 'image/webp', data: img.data },
+        });
+      }
+      ingContent.push({ type: 'text', text: '相片中可能未有完整成份表。請根據你識別到嘅產品名稱、品牌、類型，估算呢類產品常見嘅成份同注意事項。在inci_list填入常見成份，key_ingredients填入主要成份功效，concerns填入注意事項。return JSON結果（只return JSON）。' });
+    }
 
     // Run OCR + Ingredients analysis in parallel
     const [ocrResponse, ingredientsResponse] = await Promise.all([
@@ -160,10 +184,7 @@ export async function POST(request: Request) {
         model: 'claude-sonnet-4-5',
         max_tokens: 1200,
         system: INGREDIENTS_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: [
-          ...ocrContent.slice(0, -1), // same images
-          { type: 'text', text: '請分析成份表，return JSON結果（只return JSON）。如果相片中見唔到成份表，return {"inci_list":[],"key_ingredients":[],"concerns":[],"suitable_for":[],"avoid_if":[],"overall_rating":"unknown"}' },
-        ]}],
+        messages: [{ role: 'user', content: ingContent }],
       }),
     ]);
 
