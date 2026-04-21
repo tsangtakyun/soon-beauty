@@ -8,6 +8,7 @@ type SearchParams = {
   filter?: 'all' | 'expiring' | 'expired' | 'in_use' | 'unopened';
   category?: string;
   group?: string;
+  sort?: 'expiry' | 'newest' | 'name';
 };
 
 const GROUP_LABELS: Record<string, string> = {
@@ -22,9 +23,10 @@ export default async function ProductsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const filter     = params.filter   ?? 'all';
-  const categoryId = params.category;
+  const filter      = params.filter   ?? 'all';
+  const categoryId  = params.category;
   const groupFilter = params.group;
+  const sort        = params.sort ?? 'expiry';
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -64,25 +66,34 @@ export default async function ProductsPage({
     query = query.eq('category_id', categoryId);
   }
 
-  query = query.order('days_until_expiry', { ascending: true, nullsFirst: false });
+  if (sort === 'newest') {
+    query = query.order('created_at', { ascending: false });
+  } else if (sort === 'name') {
+    query = query.order('name', { ascending: true });
+  } else {
+    query = query.order('days_until_expiry', { ascending: true, nullsFirst: false });
+  }
 
   const { data: products } = await query;
   const list = (products as ProductWithExpiry[] | null) ?? [];
 
-  // Figure out which category IDs have products (via primary OR tags)
+  const rawParams: Record<string, string | undefined> = {
+    filter: filter !== 'all' ? filter : undefined,
+    category: categoryId,
+    group: groupFilter,
+    sort: sort !== 'expiry' ? sort : undefined,
+  };
   const catIdsWithProducts = new Set<string>();
   list.forEach((p) => {
     if (p.category_id) catIdsWithProducts.add(p.category_id);
-    const tags = (p as typeof p & { tags?: string[] | null }).tags;
-    if (tags) tags.forEach((t) => catIdsWithProducts.add(t));
+    if (p.tags) p.tags.forEach((t: string) => catIdsWithProducts.add(t));
   });
 
   // When filtering by category, also include products where it's a tag
   const filteredList = categoryId
     ? list.filter((p) => {
         if (p.category_id === categoryId) return true;
-        const tags = (p as typeof p & { tags?: string[] | null }).tags;
-        return tags?.includes(categoryId) ?? false;
+        return p.tags?.includes(categoryId) ?? false;
       })
     : list;
 
@@ -132,6 +143,14 @@ export default async function ProductsPage({
         <FilterPill href="/products?filter=unopened"  label="未開封"   active={filter==='unopened'} />
       </div>
 
+      {/* Sort pills */}
+      <div className="flex gap-2 items-center overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <span className="text-micro flex-shrink-0" style={{ color: '#9A7080' }}>排序：</span>
+        <FilterPill href={buildHref(rawParams, { sort: 'expiry' })}   label="快過期優先" active={sort === 'expiry'} small />
+        <FilterPill href={buildHref(rawParams, { sort: 'newest' })}   label="最新加入"   active={sort === 'newest'} small />
+        <FilterPill href={buildHref(rawParams, { sort: 'name' })}     label="名稱"       active={sort === 'name'}   small />
+      </div>
+
       {/* Group filter */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
         <FilterPill href="/products" label="所有類別" active={!groupFilter} small />
@@ -164,8 +183,9 @@ export default async function ProductsPage({
         // Grouped view
         <div className="space-y-6">
           {groups.map(({ parent, kids }) => {
-            const groupProducts = filteredList.filter((p) => kids.some((k) => k.id === p.category_id ||
-              ((p as typeof p & { tags?: string[] | null }).tags ?? []).includes(k.id)));
+            const groupProducts = filteredList.filter((p) => kids.some((k) =>
+              k.id === p.category_id || (p.tags ?? []).includes(k.id)
+            ));
             if (groupProducts.length === 0 && !showAll) return null;
             return (
               <section key={parent.id}>
@@ -188,8 +208,7 @@ export default async function ProductsPage({
                     .filter((k) => catIdsWithProducts.has(k.id))
                     .map((k) => {
                       const count = list.filter((p) =>
-                        p.category_id === k.id ||
-                        ((p as typeof p & { tags?: string[] | null }).tags ?? []).includes(k.id)
+                        p.category_id === k.id || (p.tags ?? []).includes(k.id)
                       ).length;
                       return (
                         <Link
@@ -249,6 +268,15 @@ export default async function ProductsPage({
       )}
     </div>
   );
+}
+
+function buildHref(current: Record<string, string | undefined>, overrides: Record<string, string | undefined>) {
+  const merged = { ...current, ...overrides };
+  const params = Object.entries(merged)
+    .filter(([, v]) => v !== undefined && v !== 'expiry') // 'expiry' is default, omit it
+    .map(([k, v]) => `${k}=${v}`)
+    .join('&');
+  return `/products${params ? `?${params}` : ''}`;
 }
 
 function kids_set(groups: { kids: Category[] }[]) {
