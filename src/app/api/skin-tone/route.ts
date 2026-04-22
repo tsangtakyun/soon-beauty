@@ -43,25 +43,27 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { imageData, mediaType, veinColor } = body;
-    if (!imageData) return NextResponse.json({ error: 'No image' }, { status: 400 });
+    const { wristData, faceData, mediaType, veinColor } = body;
+    if (!wristData || !faceData) return NextResponse.json({ error: 'Both wrist and face images required' }, { status: 400 });
 
-    // Build vein color context for prompt
     const veinContext = veinColor === 'blue_purple'
-      ? '【靜脈顏色：藍/紫色】→ 用家係冷調（Cool undertone），季節型必須係Summer或Winter，唔可以係Spring或Autumn。'
+      ? '【靜脈顏色：藍/紫色】→ 冷調（Cool undertone），季節型必須係Summer或Winter。'
       : veinColor === 'green'
-      ? '【靜脈顏色：綠色】→ 用家係暖調（Warm undertone），季節型必須係Spring或Autumn，唔可以係Summer或Winter。'
-      : '【靜脈顏色：睇唔清楚】→ 純靠相片判斷冷暖調。';
+      ? '【靜脈顏色：綠色】→ 暖調（Warm undertone），季節型必須係Spring或Autumn。'
+      : '【靜脈顏色：睇唔清楚】→ 靠相片判斷。';
 
-    const systemWithVein = SYSTEM_PROMPT + `\n\n${veinContext}\n靜脈顏色係最客觀嘅冷暖調指標，必須優先於相片嘅視覺判斷。`;
+    const systemWithVein = SYSTEM_PROMPT + `\n\n${veinContext}\n靜脈係最客觀冷暖調指標，優先於相片視覺判斷。\n分析策略：第一張係手腕相，用於判斷底色（undertone）同冷暖調；第二張係臉部相，用於判斷膚色深淺（skin_depth）。兩張結合得出最準確結果。`;
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
       max_tokens: 1000,
       system: systemWithVein,
       messages: [{ role: 'user', content: [
-        { type: 'image', source: { type: 'base64', media_type: mediaType ?? 'image/jpeg', data: imageData } },
-        { type: 'text', text: '請分析呢張相片嘅個人色彩，return JSON。' },
+        { type: 'text', text: '[手腕內側相片 — 判斷底色同冷暖調]' },
+        { type: 'image', source: { type: 'base64', media_type: mediaType ?? 'image/jpeg', data: wristData } },
+        { type: 'text', text: '[臉部正面相片 — 判斷膚色深淺]' },
+        { type: 'image', source: { type: 'base64', media_type: mediaType ?? 'image/jpeg', data: faceData } },
+        { type: 'text', text: '請根據以上兩張相片及靜脈顏色資訊，分析個人色彩，return JSON。' },
       ]}],
     });
 
