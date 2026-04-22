@@ -114,13 +114,15 @@ ${undertoneContext}
     const cleaned = textBlock.text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
     const result = JSON.parse(cleaned);
 
-    // ── Hard override: user questionnaire takes priority over AI photo analysis ──
-    // Undertone: if user selected (not unclear), force it
+    // Save AI's original photo-based undertone before override
+    const photoUndertone = result.undertone;
+    const photoWarmCool = result.warm_cool;
+
+    // ── Hard override: user questionnaire takes priority ──
     if (undertonePref && undertonePref !== 'unclear') {
       result.undertone = undertonePref;
     }
 
-    // Warm/cool: if both vein + jewelry point same direction, force it
     const veinWarm = veinColor === 'green';
     const veinCool = veinColor === 'blue_purple';
     const jewelryWarm = jewelryPref === 'gold';
@@ -128,22 +130,38 @@ ${undertoneContext}
 
     if (veinWarm && jewelryWarm) {
       result.warm_cool = 'warm';
-      // Also constrain season to warm types
       if (result.season === 'summer' || result.season === 'winter') {
-        // Check which warm season fits better based on skin_depth
         result.season = result.skin_depth === 'fair' || result.skin_depth === 'light' ? 'spring' : 'autumn';
       }
     } else if (veinCool && jewelryCool) {
       result.warm_cool = 'cool';
-      // Also constrain season to cool types
       if (result.season === 'spring' || result.season === 'autumn') {
         result.season = result.skin_depth === 'deep' || result.skin_depth === 'tan' ? 'winter' : 'summer';
       }
     }
 
-    // Add note if AI disagreed with user
-    if (undertonePref && undertonePref !== 'unclear' && result.undertone !== undertonePref) {
-      result.notes = (result.notes ? result.notes + '。' : '') + `相片分析傾向其他底色，但已按你嘅自選底色（${undertonePref}）為準。`;
+    // ── Photo observation note ──
+    const undertoneLabels: Record<string, string> = {
+      yellow: '黃調', pink: '粉紅調', olive: '橄欖/灰綠調', neutral: '中性'
+    };
+    const warmCoolLabels: Record<string, string> = {
+      warm: '暖調', cool: '冷調', neutral: '中性'
+    };
+
+    const undertoneChanged = undertonePref && undertonePref !== 'unclear' && photoUndertone !== undertonePref;
+    const warmCoolChanged = ((veinWarm && jewelryWarm) || (veinCool && jewelryCool)) && photoWarmCool !== result.warm_cool;
+
+    if (undertoneChanged || warmCoolChanged) {
+      const observations = [];
+      if (undertoneChanged) {
+        observations.push(`底色似乎偏${undertoneLabels[photoUndertone] ?? photoUndertone}（你選擇了${undertoneLabels[undertonePref!]}）`);
+      }
+      if (warmCoolChanged) {
+        observations.push(`冷暖調似乎偏${warmCoolLabels[photoWarmCool] ?? photoWarmCool}（問卷顯示${warmCoolLabels[result.warm_cool]}）`);
+      }
+      result.photo_observation = `根據相片觀察：${observations.join('，')}。如有疑問建議諮詢專業個人色彩分析師確認。`;
+    } else {
+      result.photo_observation = null;
     }
 
     // Save color profile

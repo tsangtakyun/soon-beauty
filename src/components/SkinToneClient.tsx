@@ -518,6 +518,16 @@ export default function SkinToneClient({ existingProfile, products }: { existing
         )}
 
         {result?.notes && <p className="text-micro text-center" style={{ color: '#B09898' }}>⚠️ {result.notes}</p>}
+
+        {/* Photo observation — show if AI disagrees with questionnaire */}
+        {(result as AnalysisResult & { photo_observation?: string })?.photo_observation && (
+          <div className="card p-4 space-y-1" style={{ border: '0.5px solid #E0D4D8' }}>
+            <div className="text-caption font-medium" style={{ color: '#7A5060' }}>📷 相片觀察</div>
+            <p className="text-caption" style={{ color: '#7A6068', lineHeight: 1.7 }}>
+              {(result as AnalysisResult & { photo_observation?: string }).photo_observation}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
