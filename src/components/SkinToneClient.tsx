@@ -455,6 +455,16 @@ export default function SkinToneClient({ existingProfile, products }: { existing
           )}
         </div>
 
+        {/* Photo observation — above suitable shades */}
+        {(result as AnalysisResult & { photo_observation?: string })?.photo_observation && (
+          <div className="card p-4 space-y-1.5" style={{ border: '0.5px solid #E8D4C0', background: '#FDF8F4' }}>
+            <div className="text-caption font-medium" style={{ color: '#A06030' }}>📷 相片觀察</div>
+            <p className="text-caption" style={{ color: '#7A6068', lineHeight: 1.7 }}>
+              {(result as AnalysisResult & { photo_observation?: string }).photo_observation}
+            </p>
+          </div>
+        )}
+
         <div className="card p-4 space-y-3">
           <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1218' }}>建議色系</h3>
           {Object.entries(profile.suitable_shades).map(([cat, shades]) => (
@@ -519,18 +529,38 @@ export default function SkinToneClient({ existingProfile, products }: { existing
 
         {result?.notes && <p className="text-micro text-center" style={{ color: '#B09898' }}>⚠️ {result.notes}</p>}
 
-        {/* Photo observation — show if AI disagrees with questionnaire */}
-        {(result as AnalysisResult & { photo_observation?: string })?.photo_observation && (
-          <div className="card p-4 space-y-1" style={{ border: '0.5px solid #E0D4D8' }}>
-            <div className="text-caption font-medium" style={{ color: '#7A5060' }}>📷 相片觀察</div>
-            <p className="text-caption" style={{ color: '#7A6068', lineHeight: 1.7 }}>
-              {(result as AnalysisResult & { photo_observation?: string }).photo_observation}
-            </p>
-          </div>
+        {/* Save confirmation button */}
+        {result && (
+          <SaveButton profile={profile} />
         )}
       </div>
     );
   }
 
   return null;
+}
+
+function SaveButton({ profile }: { profile: ColorProfile | null }) {
+  const [saved, setSaved] = useState(false);
+
+  async function handleSave() {
+    if (!profile) return;
+    const res = await fetch('/api/skin-tone/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile }),
+    });
+    if (res.ok) setSaved(true);
+  }
+
+  return (
+    <button
+      onClick={handleSave}
+      disabled={saved}
+      className="btn-primary w-full"
+      style={{ background: saved ? '#2E7A4A' : undefined }}
+    >
+      {saved ? '✓ 已儲存到我的色彩檔案' : '儲存分析結果'}
+    </button>
+  );
 }
