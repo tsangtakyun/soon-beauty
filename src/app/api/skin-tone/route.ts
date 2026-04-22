@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { wristData, faceData, mediaType, veinColor, jewelryPref } = body;
+    const { wristData, faceData, mediaType, veinColor, jewelryPref, undertonePref } = body;
     if (!wristData || !faceData) return NextResponse.json({ error: 'Both wrist and face images required' }, { status: 400 });
 
     const veinContext = veinColor === 'blue_purple'
@@ -76,17 +76,24 @@ export async function POST(request: Request) {
       ? '【飾物偏好：銀色更好睇】→ 強烈支持冷調（Cool），季節型傾向Summer或Winter。'
       : '【飾物偏好：兩個都OK】→ 可能係中性底，靠其他指標判斷。';
 
+    const undertoneContext = undertonePref && undertonePref !== 'unclear'
+      ? `【用家自選底色：${undertonePref === 'yellow' ? '黃調' : undertonePref === 'pink' ? '粉紅調' : '橄欖/灰綠調'}】→ 用家自己了解自己膚色，undertone必須設為「${undertonePref}」，呢個係最高優先級，唔可以靠相片推翻。`
+      : '【用家底色：唔確定】→ 靠相片同其他指標判斷底色。';
+
     const systemWithVein = SYSTEM_PROMPT + `
 
 ${veinContext}
 ${jewelryContext}
+${undertoneContext}
 
-綜合判斷規則：
-- 靜脈同飾物兩個都指向同一方向 → 高信心，以此為準
-- 靜脈同飾物指向不同方向 → 靠手腕相片判斷底色作最終決定
-- 靜脈係最客觀指標，優先於相片視覺判斷
+綜合判斷規則（重要）：
+1. 用家問卷答案（底色+靜脈+飾物）係主要判斷依據
+2. 相片（手腕+臉部白紙）係double check工具
+3. 如果相片同問卷一致 → 高信心，season_confidence填"high"
+4. 如果相片同問卷不一致 → 仍然跟問卷答案，但season_confidence填"medium"，並在notes說明差異（例如：「用家自選橄欖底，但手腕相片似乎偏黃，建議再次確認」）
+5. 用家自選底色係最高優先，相片唔可以推翻問卷答案
 
-分析策略：第一張係手腕相，用於判斷底色（undertone）同冷暖調；第二張係臉部相（用家手持白紙校準色溫），用於判斷膚色深淺（skin_depth）。如果臉部相有白紙，請以白紙作為白色參考點校正色溫。`;
+分析策略：第一張係手腕相，用於輔助判斷底色同冷暖調；第二張係臉部相（用家手持白紙校準色溫），用於判斷膚色深淺（skin_depth）。如果臉部相有白紙，請以白紙作為白色參考點校正色溫。`;
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
