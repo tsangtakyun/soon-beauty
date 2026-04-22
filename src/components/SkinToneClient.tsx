@@ -51,13 +51,27 @@ function ImageCapture({
   const camRef = useRef<HTMLInputElement>(null);
 
   function handleFile(file: File) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
+    // Compress image before storing
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 1024;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+        else { width = Math.round(width * MAX / height); height = MAX; }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      URL.revokeObjectURL(objectUrl);
       setPreviewData(dataUrl.split(',')[1]);
       setPreviewUrl(dataUrl);
     };
-    reader.readAsDataURL(file);
+    img.src = objectUrl;
   }
 
   return (
