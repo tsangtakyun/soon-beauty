@@ -17,7 +17,8 @@ type ColorProfile = {
 };
 type AnalysisResult = ColorProfile & { season_confidence: string; lama_message: string; notes: string };
 type VeinColor = 'blue_purple' | 'green' | 'unclear';
-type Stage = 'landing' | 'vein' | 'wrist' | 'face' | 'analyzing' | 'result';
+type Stage = 'landing' | 'vein' | 'jewelry' | 'wrist' | 'face' | 'analyzing' | 'result';
+type JewelryPref = 'gold' | 'silver' | 'both';
 
 const SEASON_CONFIG: Record<string, { label: string; emoji: string; bg: string; color: string; border: string }> = {
   spring: { label: 'Spring 春季型', emoji: '🌸', bg: '#FEF8F0', color: '#B06030', border: '#F0D4B0' },
@@ -119,6 +120,7 @@ function ImageCapture({
 export default function SkinToneClient({ existingProfile, products }: { existingProfile: ColorProfile | null; products: Product[] }) {
   const [stage, setStage] = useState<Stage>(existingProfile ? 'result' : 'landing');
   const [veinColor, setVeinColor] = useState<VeinColor | null>(null);
+  const [jewelryPref, setJewelryPref] = useState<JewelryPref | null>(null);
   const [wristData, setWristData] = useState<string | null>(null);
   const [faceData, setFaceData] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -133,7 +135,7 @@ export default function SkinToneClient({ existingProfile, products }: { existing
       const res = await fetch('/api/skin-tone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wristData, faceData, mediaType: 'image/jpeg', veinColor }),
+        body: JSON.stringify({ wristData, faceData, mediaType: 'image/jpeg', veinColor, jewelryPref }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -161,9 +163,10 @@ export default function SkinToneClient({ existingProfile, products }: { existing
       {/* Steps preview */}
       <div className="space-y-2">
         {[
-          { step: '1', label: '回答靜脈顏色問題', desc: '翻轉手腕看靜脈' },
-          { step: '2', label: '拍攝手腕內側', desc: '判斷底色最準確' },
-          { step: '3', label: '拍攝臉部正面', desc: '判斷膚色深淺' },
+          { step: '1', label: '靜脈顏色問題', desc: '翻轉手腕看靜脈' },
+          { step: '2', label: '金銀飾物問題', desc: '判斷冷暖調' },
+          { step: '3', label: '拍攝手腕內側', desc: '判斷底色最準確' },
+          { step: '4', label: '拍攝臉部正面', desc: '手持白紙校正色溫' },
         ].map((s) => (
           <div key={s.step} className="flex items-center gap-3 p-2.5 rounded-md" style={{ background: '#F5F0F2' }}>
             <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-caption font-medium"
@@ -225,8 +228,8 @@ export default function SkinToneClient({ existingProfile, products }: { existing
         ))}
       </div>
 
-      <button onClick={() => setStage('wrist')} disabled={!veinColor} className="btn-primary w-full">
-        下一步：拍手腕 →
+      <button onClick={() => setStage('jewelry')} disabled={!veinColor} className="btn-primary w-full">
+        下一步：金銀飾物問題 →
       </button>
       <button onClick={() => setStage('landing')} className="text-caption w-full text-center" style={{ color: '#B09898' }}>
         返回
@@ -234,16 +237,78 @@ export default function SkinToneClient({ existingProfile, products }: { existing
     </div>
   );
 
+  // ── JEWELRY QUESTION ──
+  if (stage === 'jewelry') return (
+    <div className="card p-6 space-y-5">
+      <div>
+        <div className="text-micro mb-1" style={{ color: '#9A7080' }}>第 2 步 / 共 4 步</div>
+        <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 20, fontWeight: 400, color: '#1A1218' }}>
+          金飾還是銀飾？
+        </h2>
+        <p className="text-caption mt-2" style={{ color: '#7A6068', lineHeight: 1.7 }}>
+          回想你戴金色飾物（黃金、玫瑰金）定銀色飾物（白銀、白金）時，哪個令你膚色看起來更好睇、更有氣色？
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {[
+          {
+            value: 'gold' as JewelryPref,
+            label: '金色飾物更好睇',
+            desc: '黃金或玫瑰金令我膚色更有光澤',
+            emoji: '🥇',
+          },
+          {
+            value: 'silver' as JewelryPref,
+            label: '銀色飾物更好睇',
+            desc: '白銀或白金令我膚色更清透',
+            emoji: '🥈',
+          },
+          {
+            value: 'both' as JewelryPref,
+            label: '兩個都OK / 唔確定',
+            desc: '分唔清楚或者兩種都適合',
+            emoji: '🤷',
+          },
+        ].map((opt) => (
+          <button key={opt.value} onClick={() => setJewelryPref(opt.value)}
+            className="w-full flex items-center gap-4 p-4 rounded-md text-left transition-all"
+            style={{
+              border: jewelryPref === opt.value ? '1.5px solid #B06070' : '0.5px solid #E0D4D8',
+              background: jewelryPref === opt.value ? '#FDF0F4' : '#FAFAF8',
+            }}>
+            <span style={{ fontSize: 24 }}>{opt.emoji}</span>
+            <div className="flex-1">
+              <div className="text-caption font-medium" style={{ color: '#1A1218' }}>{opt.label}</div>
+              <div className="text-micro mt-0.5" style={{ color: '#9A7080' }}>{opt.desc}</div>
+            </div>
+            {jewelryPref === opt.value && (
+              <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: '#B06070', color: 'white', fontSize: 11 }}>✓</div>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <button onClick={() => setStage('wrist')} disabled={!jewelryPref} className="btn-primary w-full">
+        下一步：拍手腕 →
+      </button>
+      <button onClick={() => setStage('vein')} className="text-caption w-full text-center" style={{ color: '#B09898' }}>
+        ← 返回修改靜脈答案
+      </button>
+    </div>
+  );
+
   // ── WRIST PHOTO ──
   if (stage === 'wrist') return (
     <ImageCapture
-      subtitle="第 2 步 / 共 3 步"
+      subtitle="第 3 步 / 共 4 步"
       title="拍攝手腕內側"
       instruction="將手腕翻轉，在自然光下拍攝手腕內側皮膚。確保畫面清晰，可以看到靜脈。"
       tip="自然光效果最好，避免黃燈或強烈閃光。手腕放鬆，不要繃緊。"
       onCapture={(data) => { setWristData(data); setStage('face'); }}
-      onBack={() => setStage('vein')}
-      backLabel="返回修改靜脈答案"
+      onBack={() => setStage('jewelry')}
+      backLabel="返回修改飾物答案"
     />
   );
 
@@ -256,10 +321,10 @@ export default function SkinToneClient({ existingProfile, products }: { existing
         </div>
       )}
       <ImageCapture
-        subtitle="第 3 步 / 共 3 步"
+        subtitle="第 4 步 / 共 4 步"
         title="拍攝臉部正面"
-        instruction="素顏或淡妝，在自然光下正面拍攝。避免濾鏡，確保膚色清晰可見。"
-        tip="窗邊自然光效果最好。拍完會立即開始分析！"
+        instruction="手持一張白紙靠近臉旁，在自然光下正面拍攝。白紙幫助AI校正光線色溫，令膚色分析更準確。素顏或淡妝效果最佳，避免濾鏡。"
+        tip="白紙放喺臉側或下巴位置即可，確保臉部同白紙都在畫面內。拍完會立即開始分析！"
         onCapture={(data) => { setFaceData(data); analyse(); }}
         onBack={() => setStage('wrist')}
         backLabel="返回重拍手腕"

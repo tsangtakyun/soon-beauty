@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { wristData, faceData, mediaType, veinColor } = body;
+    const { wristData, faceData, mediaType, veinColor, jewelryPref } = body;
     if (!wristData || !faceData) return NextResponse.json({ error: 'Both wrist and face images required' }, { status: 400 });
 
     const veinContext = veinColor === 'blue_purple'
@@ -52,7 +52,23 @@ export async function POST(request: Request) {
       ? '【靜脈顏色：綠色】→ 暖調（Warm undertone），季節型必須係Spring或Autumn。'
       : '【靜脈顏色：睇唔清楚】→ 靠相片判斷。';
 
-    const systemWithVein = SYSTEM_PROMPT + `\n\n${veinContext}\n靜脈係最客觀冷暖調指標，優先於相片視覺判斷。\n分析策略：第一張係手腕相，用於判斷底色（undertone）同冷暖調；第二張係臉部相，用於判斷膚色深淺（skin_depth）。兩張結合得出最準確結果。`;
+    const jewelryContext = jewelryPref === 'gold'
+      ? '【飾物偏好：金色更好睇】→ 強烈支持暖調（Warm），季節型傾向Spring或Autumn。'
+      : jewelryPref === 'silver'
+      ? '【飾物偏好：銀色更好睇】→ 強烈支持冷調（Cool），季節型傾向Summer或Winter。'
+      : '【飾物偏好：兩個都OK】→ 可能係中性底，靠其他指標判斷。';
+
+    const systemWithVein = SYSTEM_PROMPT + `
+
+${veinContext}
+${jewelryContext}
+
+綜合判斷規則：
+- 靜脈同飾物兩個都指向同一方向 → 高信心，以此為準
+- 靜脈同飾物指向不同方向 → 靠手腕相片判斷底色作最終決定
+- 靜脈係最客觀指標，優先於相片視覺判斷
+
+分析策略：第一張係手腕相，用於判斷底色（undertone）同冷暖調；第二張係臉部相（用家手持白紙校準色溫），用於判斷膚色深淺（skin_depth）。如果臉部相有白紙，請以白紙作為白色參考點校正色溫。`;
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
