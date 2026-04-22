@@ -97,22 +97,30 @@ ${undertoneContext}
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 1000,
+      max_tokens: 1500,
       system: systemWithVein,
       messages: [{ role: 'user', content: [
         { type: 'text', text: '[手腕內側相片 — 判斷底色同冷暖調]' },
         { type: 'image', source: { type: 'base64', media_type: mediaType ?? 'image/jpeg', data: wristData } },
         { type: 'text', text: '[臉部正面相片 — 判斷膚色深淺]' },
         { type: 'image', source: { type: 'base64', media_type: mediaType ?? 'image/jpeg', data: faceData } },
-        { type: 'text', text: '請根據以上兩張相片及靜脈顏色資訊，分析個人色彩，return JSON。' },
+        { type: 'text', text: '請根據以上兩張相片及問卷資訊分析個人色彩。只return純JSON，唔好其他文字。' },
       ]}],
     });
 
     const textBlock = response.content.find((b) => b.type === 'text');
-    if (!textBlock || textBlock.type !== 'text') return NextResponse.json({ error: 'No response' }, { status: 500 });
+    if (!textBlock || textBlock.type !== 'text') return NextResponse.json({ error: 'No response from AI' }, { status: 500 });
 
-    const cleaned = textBlock.text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
-    const result = JSON.parse(cleaned);
+    const raw = textBlock.text;
+    const cleaned = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+
+    let result: Record<string, unknown>;
+    try {
+      result = JSON.parse(cleaned);
+    } catch {
+      console.error('JSON parse error. Raw response:', raw.slice(0, 200));
+      return NextResponse.json({ error: `AI返回格式有誤，請重試` }, { status: 500 });
+    }
 
     // Save AI's original photo-based undertone before override
     const photoUndertone = result.undertone;
