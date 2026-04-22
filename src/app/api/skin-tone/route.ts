@@ -86,10 +86,12 @@ ${veinContext}
 ${jewelryContext}
 ${undertoneContext}
 
-綜合判斷規則：
-- 如果用家自選咗底色（唔係唔確定）→ undertone必須跟用家答案，最高優先級
-- 靜脈同飾物兩個都指向同一方向 → 高信心，以此為準
-- 靜脈同飾物指向不同方向 → 靠手腕相片判斷底色作最終決定
+綜合判斷規則（重要）：
+1. 用家問卷答案（底色+靜脈+飾物）係主要判斷依據
+2. 相片（手腕+臉部白紙）係double check工具
+3. 如果相片同問卷一致 → 高信心，season_confidence填"high"
+4. 如果相片同問卷不一致 → 仍然跟問卷答案，但season_confidence填"medium"，並在notes說明差異（例如：「用家自選橄欖底，但手腕相片似乎偏黃，建議再次確認」）
+5. 用家自選底色係最高優先，相片唔可以推翻問卷答案
 
 分析策略：第一張係手腕相，用於輔助判斷底色同冷暖調；第二張係臉部相（用家手持白紙校準色溫），用於判斷膚色深淺（skin_depth）。如果臉部相有白紙，請以白紙作為白色參考點校正色溫。`;
 
@@ -111,6 +113,38 @@ ${undertoneContext}
 
     const cleaned = textBlock.text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
     const result = JSON.parse(cleaned);
+
+    // ── Hard override: user questionnaire takes priority over AI photo analysis ──
+    // Undertone: if user selected (not unclear), force it
+    if (undertonePref && undertonePref !== 'unclear') {
+      result.undertone = undertonePref;
+    }
+
+    // Warm/cool: if both vein + jewelry point same direction, force it
+    const veinWarm = veinColor === 'green';
+    const veinCool = veinColor === 'blue_purple';
+    const jewelryWarm = jewelryPref === 'gold';
+    const jewelryCool = jewelryPref === 'silver';
+
+    if (veinWarm && jewelryWarm) {
+      result.warm_cool = 'warm';
+      // Also constrain season to warm types
+      if (result.season === 'summer' || result.season === 'winter') {
+        // Check which warm season fits better based on skin_depth
+        result.season = result.skin_depth === 'fair' || result.skin_depth === 'light' ? 'spring' : 'autumn';
+      }
+    } else if (veinCool && jewelryCool) {
+      result.warm_cool = 'cool';
+      // Also constrain season to cool types
+      if (result.season === 'spring' || result.season === 'autumn') {
+        result.season = result.skin_depth === 'deep' || result.skin_depth === 'tan' ? 'winter' : 'summer';
+      }
+    }
+
+    // Add note if AI disagreed with user
+    if (undertonePref && undertonePref !== 'unclear' && result.undertone !== undertonePref) {
+      result.notes = (result.notes ? result.notes + '。' : '') + `相片分析傾向其他底色，但已按你嘅自選底色（${undertonePref}）為準。`;
+    }
 
     // Save color profile
     await supabase.from('profiles').update({
