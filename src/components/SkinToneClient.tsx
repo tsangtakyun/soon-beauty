@@ -1,418 +1,358 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Camera, RefreshCw, Sparkles, CheckCircle, XCircle } from 'lucide-react';
+import { Camera, Upload, RefreshCw, Sparkles, CheckCircle, XCircle } from 'lucide-react';
 import type { Product } from '@/types/database';
 
-type Stage = 'intro' | 'camera' | 'preview' | 'analyzing' | 'result';
-
-type MakeupRecs = {
-  foundation: string;
-  blush: string[];
-  lipstick: string[];
-  eyeshadow: string[];
-  contour: string;
-};
-
-type SkinToneResult = {
-  calibration_note: string;
-  season: string;
-  season_cn: string;
-  season_desc: string;
-  tone: string;
-  tone_cn: string;
-  depth: string;
-  depth_cn: string;
+type SuitableShades = { lip: string[]; blush: string[]; eyeshadow: string[]; foundation: string[] };
+type ColorProfile = {
+  season: 'spring' | 'summer' | 'autumn' | 'winter';
+  warm_cool: 'warm' | 'cool' | 'neutral';
+  skin_depth: string;
   undertone: string;
-  undertone_cn: string;
-  confidence: 'high' | 'medium' | 'low';
-  analysis: string;
-  makeup_recommendations: MakeupRecs;
-  colors_to_avoid: string[];
-  celebrity_reference: string;
-  tips: string;
+  suitable_shades: SuitableShades;
+  avoid_shades: string[];
+  season_description: string;
+  analysed_at?: string;
+};
+type AnalysisResult = ColorProfile & { season_confidence: string; lama_message: string; notes: string };
+
+const SEASON_CONFIG: Record<string, { label: string; emoji: string; bg: string; color: string; border: string }> = {
+  spring: { label: 'Spring 春季型', emoji: '🌸', bg: '#FEF8F0', color: '#B06030', border: '#F0D4B0' },
+  summer: { label: 'Summer 夏季型', emoji: '🌿', bg: '#F0EAF4', color: '#7A50A0', border: '#D0B8E0' },
+  autumn: { label: 'Autumn 秋季型', emoji: '🍂', bg: '#FEF0E8', color: '#A04020', border: '#F0C4A0' },
+  winter: { label: 'Winter 冬季型', emoji: '❄️', bg: '#EAF0F8', color: '#304080', border: '#B0C4E0' },
 };
 
-const SEASON_COLORS: Record<string, { bg: string; accent: string; text: string }> = {
-  Spring:  { bg: '#FFF5EC', accent: '#E8825A', text: '#7A3A20' },
-  Summer:  { bg: '#F0EEF8', accent: '#9080C0', text: '#3A2870' },
-  Autumn:  { bg: '#FFF0E0', accent: '#C07030', text: '#6A3010' },
-  Winter:  { bg: '#EEF0F8', accent: '#4050A0', text: '#1A2060' },
-};
+type VeinColor = 'blue_purple' | 'green' | 'unclear';
 
-const SEASON_EMOJI: Record<string, string> = {
-  Spring: '🌸', Summer: '🌿', Autumn: '🍂', Winter: '❄️',
-};
-
-// Match products to recommended colors based on notes/shade tags
-function matchProducts(products: Product[], recs: MakeupRecs): Product[] {
-  const allColors = [
-    ...recs.blush,
-    ...recs.lipstick,
-    ...recs.eyeshadow,
-  ].map((c) => c.toLowerCase());
-
-  return products.filter((p) => {
-    const notes = (p.notes ?? '').toLowerCase();
-    return allColors.some((color) => notes.includes(color));
-  }).slice(0, 6);
+function getCompat(product: Product, profile: ColorProfile): 'match' | 'avoid' | 'neutral' {
+  const shade = (product.notes ?? '').match(/色系：(.+)/)?.[1]?.trim();
+  if (!shade) return 'neutral';
+  const allSuitable = Object.values(profile.suitable_shades).flat();
+  if (allSuitable.some((s) => shade.includes(s) || s.includes(shade))) return 'match';
+  if (profile.avoid_shades?.some((s) => shade.includes(s) || s.includes(shade))) return 'avoid';
+  return 'neutral';
 }
 
-export default function SkinToneClient({ products }: { products: Product[] }) {
-  const [stage, setStage] = useState<Stage>('intro');
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<string>('image/jpeg');
-  const [result, setResult] = useState<SkinToneResult | null>(null);
+export default function SkinToneClient({ existingProfile, products }: { existingProfile: ColorProfile | null; products: Product[] }) {
+  const [stage, setStage] = useState<'landing' | 'vein' | 'preview' | 'analyzing' | 'result'>(
+    existingProfile ? 'result' : 'landing'
+  );
+  const [veinColor, setVeinColor] = useState<VeinColor | null>(null);
+  const [imageData, setImageData] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [profile, setProfile] = useState<ColorProfile | null>(existingProfile);
   const [error, setError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const camRef = useRef<HTMLInputElement>(null);
 
-  async function startCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
-      setStage('camera');
-    } catch {
-      setError('無法開啟相機，請改用上傳相片');
-    }
-  }
-
-  function stopCamera() {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-  }
-
-  function capturePhoto() {
-    const video = videoRef.current;
-    if (!video) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d')?.drawImage(video, 0, 0);
-    const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-    setCapturedImage(base64);
-    setMediaType('image/jpeg');
-    stopCamera();
-    setStage('preview');
-  }
-
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function handleFile(file: File) {
     const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = result.split(',')[1];
-      setCapturedImage(base64);
-      setMediaType(file.type || 'image/jpeg');
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setImageData(dataUrl.split(',')[1]);
+      setImageUrl(dataUrl);
       setStage('preview');
     };
     reader.readAsDataURL(file);
   }
 
-  async function analyzePhoto() {
-    if (!capturedImage) return;
+  async function analyse() {
+    if (!imageData) return;
     setStage('analyzing');
     setError(null);
-
     try {
       const res = await fetch('/api/skin-tone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: capturedImage, mediaType }),
+        body: JSON.stringify({ imageData, mediaType: 'image/jpeg', veinColor }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Analysis failed');
+      if (!res.ok) throw new Error(data.error);
       setResult(data.result);
+      setProfile(data.result);
       setStage('result');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '分析失敗，請重試');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '分析失敗');
       setStage('preview');
     }
   }
 
-  function reset() {
-    setCapturedImage(null);
-    setResult(null);
-    setError(null);
-    stopCamera();
-    setStage('intro');
-  }
-
-  const matchedProducts = result ? matchProducts(products, result.makeup_recommendations) : [];
-  const seasonStyle = result ? (SEASON_COLORS[result.season] ?? SEASON_COLORS.Spring) : SEASON_COLORS.Spring;
-
-  // ── INTRO ─────────────────────────────────────────────────────────────────
-  if (stage === 'intro') {
-    return (
-      <div className="space-y-4 max-w-lg mx-auto">
-        <div className="card p-6 space-y-5">
-          <div className="space-y-2">
-            <div className="text-2xl">🎨</div>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, color: '#1A1218', margin: 0 }}>
-              個人色彩分析
-            </h2>
-            <p className="text-caption" style={{ color: '#7A6068' }}>
-              運用四季色彩理論，AI 分析你嘅膚色，找出最適合你嘅 Spring / Summer / Autumn / Winter 色系。
-            </p>
-          </div>
-
-          {/* White card instruction */}
-          <div className="rounded-md p-4 space-y-2" style={{ background: '#F5F0F2', border: '0.5px solid #E0D0D8' }}>
-            <p className="text-caption font-medium" style={{ color: '#1A1218' }}>📄 拍攝前準備</p>
-            <div className="space-y-1.5 text-caption" style={{ color: '#7A6068' }}>
-              <div>1. 準備一張白紙（A4紙即可）</div>
-              <div>2. 在自然光下拍攝，避免黃燈</div>
-              <div>3. 拍攝時白紙放喺臉旁邊同框</div>
-              <div>4. 輕妝或卸妝狀態更準確</div>
-            </div>
-          </div>
-
-          <p className="text-micro" style={{ color: '#B09898' }}>
-            ⚠️ 結果僅供參考，相片光線會影響分析準確度。白紙校準可提升準確度約 40%。
-          </p>
-
-          {error && (
-            <div className="rounded p-3 text-caption" style={{ background: '#FDF0F0', color: '#A04040' }}>
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <button onClick={() => fileInputRef.current?.click()}
-              className="btn-secondary flex-1">
-              上傳相片
-            </button>
-            <button onClick={startCamera} className="btn-primary flex-1">
-              <Camera style={{ width: 15, height: 15, marginRight: 6 }} />
-              拍攝
-            </button>
-          </div>
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
-            onChange={handleFileUpload} />
-        </div>
-      </div>
-    );
-  }
-
-  // ── CAMERA ────────────────────────────────────────────────────────────────
-  if (stage === 'camera') {
-    return (
-      <div className="max-w-lg mx-auto space-y-3">
-        <div className="rounded-xl overflow-hidden" style={{ background: '#1A1218' }}>
-          <video ref={videoRef} autoPlay playsInline muted
-            className="w-full" style={{ aspectRatio: '4/3', objectFit: 'cover' }} />
-        </div>
-        <div className="card p-3 text-center">
-          <p className="text-micro mb-3" style={{ color: '#9A7080' }}>
-            請確保白紙在臉旁邊同框，自然光拍攝
-          </p>
-          <div className="flex gap-2">
-            <button onClick={() => { stopCamera(); setStage('intro'); }} className="btn-secondary flex-1">
-              取消
-            </button>
-            <button onClick={capturePhoto} className="btn-primary flex-1">
-              <Camera style={{ width: 15, height: 15, marginRight: 6 }} />
-              拍攝
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── PREVIEW ───────────────────────────────────────────────────────────────
-  if (stage === 'preview' && capturedImage) {
-    return (
-      <div className="max-w-lg mx-auto space-y-3">
-        <div className="rounded-xl overflow-hidden">
-          <img src={`data:${mediaType};base64,${capturedImage}`} alt="預覽"
-            className="w-full" style={{ maxHeight: 400, objectFit: 'cover' }} />
-        </div>
-        {error && (
-          <div className="card p-3 text-caption" style={{ color: '#A04040' }}>{error}</div>
-        )}
-        <div className="card p-4 space-y-3">
-          <p className="text-caption" style={{ color: '#7A6068' }}>
-            確認白紙清楚可見，然後開始分析。
-          </p>
-          <div className="flex gap-2">
-            <button onClick={reset} className="btn-secondary flex-1">
-              <RefreshCw style={{ width: 14, height: 14, marginRight: 6 }} />
-              重新拍攝
-            </button>
-            <button onClick={analyzePhoto} className="btn-primary flex-1">
-              <Sparkles style={{ width: 14, height: 14, marginRight: 6 }} />
-              開始分析
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── ANALYZING ─────────────────────────────────────────────────────────────
-  if (stage === 'analyzing') {
-    return (
-      <div className="max-w-lg mx-auto pt-16 text-center space-y-4">
-        <div className="inline-block animate-spin">
-          <Sparkles style={{ width: 36, height: 36, color: '#B06070' }} />
-        </div>
-        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, color: '#1A1218' }}>
-          正在分析你的膚色...
+  // ── LANDING ──
+  if (stage === 'landing') return (
+    <div className="card p-6 space-y-5">
+      <div>
+        <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 400, color: '#1A1218' }}>
+          找出你的個人色彩
         </h2>
-        <p className="text-caption" style={{ color: '#9A7080' }}>
-          AI 正在校準白紙色溫，分析四季色彩分型，約需 10–20 秒
+        <p className="text-caption mt-1" style={{ color: '#7A6068', lineHeight: 1.7 }}>
+          一條問題 + 一張相片，AI 分析你的膚色冷暖調，推薦最適合你的彩妝色系。
         </p>
       </div>
-    );
-  }
+      <div className="rounded-md p-4 text-caption space-y-1" style={{ background: '#F5F0F2', color: '#7A6068' }}>
+        <div className="font-medium mb-1.5" style={{ color: '#1A1218' }}>📸 拍攝建議</div>
+        <div>· 自然光，避免濾鏡</div>
+        <div>· 淡妝或素顏效果最佳</div>
+        <div>· 結果僅供參考，光線會影響準確度</div>
+      </div>
+      <button onClick={() => setStage('vein')} className="btn-primary w-full">
+        開始分析
+      </button>
+    </div>
+  );
 
-  // ── RESULT ────────────────────────────────────────────────────────────────
-  if (stage === 'result' && result) {
-    return (
-      <div className="max-w-lg mx-auto space-y-4">
+  // ── VEIN QUESTION ──
+  if (stage === 'vein') return (
+    <div className="card p-6 space-y-5">
+      <div>
+        <div className="text-micro mb-2" style={{ color: '#9A7080' }}>第 1 步 / 共 2 步</div>
+        <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 400, color: '#1A1218' }}>
+          睇一睇你的手腕靜脈
+        </h2>
+        <p className="text-caption mt-2" style={{ color: '#7A6068', lineHeight: 1.7 }}>
+          將手腕翻轉，在自然光下看手背靜脈的顏色。這是判斷膚色冷暖調最準確的方法。
+        </p>
+      </div>
 
-        {/* Season card */}
-        <div className="card overflow-hidden">
-          <div className="p-6 text-center space-y-2"
-            style={{ background: seasonStyle.bg }}>
-            <div style={{ fontSize: 40 }}>{SEASON_EMOJI[result.season]}</div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32,
-              color: seasonStyle.text, fontWeight: 400 }}>
-              {result.season_cn}
-            </div>
-            <div style={{ fontSize: 13, color: seasonStyle.accent }}>{result.season_desc}</div>
-            <div className="flex items-center justify-center gap-3 pt-1">
-              <Tag label={result.tone_cn} color={seasonStyle.accent} bg={seasonStyle.bg} />
-              <Tag label={result.depth_cn} color={seasonStyle.accent} bg={seasonStyle.bg} />
-              <Tag label={result.undertone_cn} color={seasonStyle.accent} bg={seasonStyle.bg} />
-            </div>
-          </div>
-
-          {/* Confidence + calibration */}
-          <div className="px-4 py-3 flex items-center gap-2"
-            style={{ borderTop: `0.5px solid ${seasonStyle.accent}30`, background: '#FAFAF8' }}>
-            {result.confidence === 'high'
-              ? <CheckCircle style={{ width: 14, height: 14, color: '#2E7A4A', flexShrink: 0 }} />
-              : <XCircle style={{ width: 14, height: 14, color: '#C06030', flexShrink: 0 }} />}
-            <p className="text-micro" style={{ color: '#9A7080' }}>
-              {result.calibration_note}
-            </p>
-          </div>
+      {/* Visual guide */}
+      <div className="rounded-md p-4" style={{ background: '#F5F0F2' }}>
+        <div className="text-caption font-medium mb-2" style={{ color: '#1A1218' }}>怎樣看？</div>
+        <div className="text-caption" style={{ color: '#7A6068', lineHeight: 1.7 }}>
+          將手腕內側對著自然光，放鬆手腕，觀察手背靜脈（血管）呈現的顏色。
         </div>
+      </div>
 
-        {/* Analysis */}
-        <div className="card p-4 space-y-2">
-          <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1218', margin: 0 }}>分析說明</h3>
-          <p className="text-caption" style={{ color: '#7A6068', lineHeight: 1.7 }}>{result.analysis}</p>
-          {result.celebrity_reference && (
-            <p className="text-micro" style={{ color: '#9A7080' }}>
-              🌟 參考：{result.celebrity_reference}
-            </p>
+      {/* Options */}
+      <div className="space-y-3">
+        {[
+          {
+            value: 'blue_purple' as VeinColor,
+            label: '藍色或紫色',
+            desc: '靜脈帶有明顯的藍色或紫色調',
+            indicator: '#7A70D0',
+          },
+          {
+            value: 'green' as VeinColor,
+            label: '綠色',
+            desc: '靜脈帶有明顯的綠色調',
+            indicator: '#5A9060',
+          },
+          {
+            value: 'unclear' as VeinColor,
+            label: '睇唔清楚 / 兩者都有',
+            desc: '顏色不明顯或藍綠都有',
+            indicator: '#9A8090',
+          },
+        ].map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setVeinColor(opt.value)}
+            className="w-full flex items-center gap-4 p-4 rounded-md text-left transition-all"
+            style={{
+              border: veinColor === opt.value ? '1.5px solid #B06070' : '0.5px solid #E0D4D8',
+              background: veinColor === opt.value ? '#FDF0F4' : '#FAFAF8',
+            }}
+          >
+            <div className="w-8 h-8 rounded-full flex-shrink-0"
+              style={{ background: opt.indicator, opacity: 0.85 }} />
+            <div>
+              <div className="text-caption font-medium" style={{ color: '#1A1218' }}>{opt.label}</div>
+              <div className="text-micro mt-0.5" style={{ color: '#9A7080' }}>{opt.desc}</div>
+            </div>
+            {veinColor === opt.value && (
+              <div className="ml-auto flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                style={{ background: '#B06070' }}>
+                <span style={{ color: 'white', fontSize: 11 }}>✓</span>
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={() => setStage('preview')}
+        disabled={!veinColor}
+        className="btn-primary w-full"
+      >
+        下一步：上傳相片 →
+      </button>
+
+      <button onClick={() => setStage('landing')}
+        className="text-caption w-full text-center" style={{ color: '#B09898' }}>
+        返回
+      </button>
+    </div>
+  );
+
+  // ── PREVIEW (photo upload) ──
+  if (stage === 'preview') return (
+    <div className="card p-5 space-y-4">
+      <div className="text-micro" style={{ color: '#9A7080' }}>第 2 步 / 共 2 步 — 上傳臉部相片</div>
+
+      {imageUrl ? (
+        <>
+          <img src={imageUrl} alt="預覽" className="w-full rounded-md object-cover" style={{ maxHeight: 300 }} />
+          {error && <p className="text-caption" style={{ color: '#C04040' }}>{error}</p>}
+          <div className="flex gap-2">
+            <button onClick={() => { setImageData(null); setImageUrl(null); }}
+              className="btn-secondary flex-1">
+              <RefreshCw className="w-4 h-4 mr-1.5" />換張相
+            </button>
+            <button onClick={analyse} className="btn-primary flex-1">
+              <Sparkles className="w-4 h-4 mr-1.5" />開始分析
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-caption" style={{ color: '#7A6068', lineHeight: 1.7 }}>
+            上傳一張臉部相片（自然光、素顏或淡妝、正面）。
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => camRef.current?.click()}
+              className="flex flex-col items-center gap-2 p-4 rounded-md transition-colors"
+              style={{ border: '0.5px solid #D8C8D0', background: '#FAFAF8' }}>
+              <Camera className="w-6 h-6" style={{ color: '#B06070' }} />
+              <span className="text-caption" style={{ color: '#1A1218' }}>拍照</span>
+            </button>
+            <button onClick={() => fileRef.current?.click()}
+              className="flex flex-col items-center gap-2 p-4 rounded-md transition-colors"
+              style={{ border: '0.5px solid #D8C8D0', background: '#FAFAF8' }}>
+              <Upload className="w-6 h-6" style={{ color: '#B06070' }} />
+              <span className="text-caption" style={{ color: '#1A1218' }}>上傳相片</span>
+            </button>
+          </div>
+        </>
+      )}
+
+      <input ref={camRef} type="file" accept="image/*" capture="user" className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+      <input ref={fileRef} type="file" accept="image/*" className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+
+      <button onClick={() => setStage('vein')}
+        className="text-caption w-full text-center" style={{ color: '#B09898' }}>
+        ← 返回修改靜脈答案
+      </button>
+    </div>
+  );
+
+  // ── ANALYZING ──
+  if (stage === 'analyzing') return (
+    <div className="pt-16 text-center space-y-4">
+      <div className="inline-block animate-spin">
+        <Sparkles className="w-10 h-10" style={{ color: '#B06070' }} />
+      </div>
+      <h2 className="fini-dash-title" style={{ fontSize: 20 }}>分析緊你的個人色彩...</h2>
+      <p className="text-caption" style={{ color: '#9A7080' }}>約需 10–15 秒</p>
+    </div>
+  );
+
+  // ── RESULT ──
+  if (stage === 'result' && profile) {
+    const cfg = SEASON_CONFIG[profile.season] ?? SEASON_CONFIG.autumn;
+    return (
+      <div className="space-y-4">
+        <div className="card p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
+              style={{ background: cfg.bg, border: `0.5px solid ${cfg.border}` }}>
+              <span style={{ fontSize: 18 }}>{cfg.emoji}</span>
+              <span style={{ fontSize: 14, fontWeight: 500, color: cfg.color }}>{cfg.label}</span>
+            </div>
+            <button onClick={() => { setStage('vein'); setVeinColor(null); setImageData(null); setImageUrl(null); }}
+              className="text-caption" style={{ color: '#B06070' }}>重新分析</button>
+          </div>
+
+          {result?.lama_message && (
+            <div className="rounded-xl p-3" style={{ background: '#FDF0F4', border: '0.5px solid #E8C8D0' }}>
+              <p className="text-caption" style={{ color: '#7A3050', lineHeight: 1.7 }}>🐱 {result.lama_message}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: '冷暖調', value: profile.warm_cool === 'warm' ? '暖調' : profile.warm_cool === 'cool' ? '冷調' : '中性' },
+              { label: '膚色深淺', value: ({ fair:'白皙', light:'偏白', medium:'中等', tan:'小麥', deep:'深色' } as Record<string,string>)[profile.skin_depth] ?? profile.skin_depth },
+              { label: '底色', value: ({ pink:'粉紅底', yellow:'黃底', olive:'橄欖底', neutral:'中性底' } as Record<string,string>)[profile.undertone] ?? profile.undertone },
+            ].map((item) => (
+              <div key={item.label} className="rounded-md p-3 text-center" style={{ background: '#F5F0F2' }}>
+                <div className="text-micro mb-1" style={{ color: '#9A7080' }}>{item.label}</div>
+                <div className="text-caption font-medium" style={{ color: '#1A1218' }}>{item.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {profile.season_description && (
+            <p className="text-caption" style={{ color: '#7A6068', lineHeight: 1.75 }}>{profile.season_description}</p>
           )}
         </div>
 
-        {/* Makeup recommendations */}
-        <div className="card p-4 space-y-4">
-          <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1218', margin: 0 }}>彩妝色系建議</h3>
-
-          <RecRow label="粉底方向" value={result.makeup_recommendations.foundation} accent={seasonStyle.accent} />
-
-          <div>
-            <p className="text-micro mb-1.5" style={{ color: '#9A7080' }}>腮紅</p>
-            <div className="flex flex-wrap gap-1.5">
-              {result.makeup_recommendations.blush.map((c) => (
-                <ColorPill key={c} label={c} accent={seasonStyle.accent} bg={seasonStyle.bg} />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-micro mb-1.5" style={{ color: '#9A7080' }}>唇妝</p>
-            <div className="flex flex-wrap gap-1.5">
-              {result.makeup_recommendations.lipstick.map((c) => (
-                <ColorPill key={c} label={c} accent={seasonStyle.accent} bg={seasonStyle.bg} />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-micro mb-1.5" style={{ color: '#9A7080' }}>眼影</p>
-            <div className="flex flex-wrap gap-1.5">
-              {result.makeup_recommendations.eyeshadow.map((c) => (
-                <ColorPill key={c} label={c} accent={seasonStyle.accent} bg={seasonStyle.bg} />
-              ))}
-            </div>
-          </div>
-
-          <RecRow label="修容" value={result.makeup_recommendations.contour} accent={seasonStyle.accent} />
-
-          {/* Avoid */}
-          {result.colors_to_avoid.length > 0 && (
-            <div>
-              <p className="text-micro mb-1.5" style={{ color: '#9A7080' }}>建議避免</p>
+        <div className="card p-4 space-y-3">
+          <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1218' }}>建議色系</h3>
+          {Object.entries(profile.suitable_shades).map(([cat, shades]) => (
+            <div key={cat} className="flex items-start gap-3">
+              <span className="text-micro flex-shrink-0 mt-0.5 w-10" style={{ color: '#9A7080' }}>
+                {({ lip:'唇妝', blush:'腮紅', eyeshadow:'眼影', foundation:'粉底' } as Record<string,string>)[cat] ?? cat}
+              </span>
               <div className="flex flex-wrap gap-1.5">
-                {result.colors_to_avoid.map((c) => (
-                  <span key={c} className="text-micro px-2.5 py-1 rounded-full"
-                    style={{ background: '#F5F0F2', color: '#9A7080',
-                      textDecoration: 'line-through' }}>
-                    {c}
-                  </span>
+                {(shades as string[]).map((s) => (
+                  <span key={s} className="text-micro px-2 py-0.5 rounded-full"
+                    style={{ background: cfg.bg, color: cfg.color, border: `0.5px solid ${cfg.border}` }}>{s}</span>
                 ))}
               </div>
             </div>
-          )}
+          ))}
         </div>
 
-        {/* Tip */}
-        <div className="card p-4 flex items-start gap-3"
-          style={{ background: seasonStyle.bg, borderColor: seasonStyle.accent + '40' }}>
-          <span style={{ fontSize: 20, flexShrink: 0 }}>🐱</span>
-          <p className="text-caption" style={{ color: seasonStyle.text, lineHeight: 1.7 }}>
-            {result.tips}
-          </p>
-        </div>
-
-        {/* Matched products from library */}
-        {matchedProducts.length > 0 && (
-          <div className="card p-4 space-y-3">
-            <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1218', margin: 0 }}>
-              你產品庫入面符合色系的產品
-            </h3>
-            <div className="space-y-2">
-              {matchedProducts.map((p) => (
-                <div key={p.id} className="flex items-center gap-3">
-                  {p.photo_url ? (
-                    <img src={p.photo_url} alt={p.name} className="rounded object-cover flex-shrink-0"
-                      style={{ width: 36, height: 36 }} />
-                  ) : (
-                    <div className="rounded flex-shrink-0 flex items-center justify-center"
-                      style={{ width: 36, height: 36, background: seasonStyle.bg,
-                        color: seasonStyle.text, fontSize: 14,
-                        fontFamily: "'Cormorant Garamond', serif" }}>
-                      {p.name.slice(0, 1)}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <div className="text-caption truncate" style={{ color: '#1A1218' }}>{p.name}</div>
-                    <div className="text-micro" style={{ color: '#9A7080' }}>{p.brand ?? '—'}</div>
-                  </div>
-                </div>
+        {profile.avoid_shades?.length > 0 && (
+          <div className="card p-4 space-y-2">
+            <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1218' }}>建議避免</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.avoid_shades.map((s) => (
+                <span key={s} className="text-micro px-2 py-0.5 rounded-full"
+                  style={{ background: '#F5F0F2', color: '#9A7080', border: '0.5px solid #E0D4D8' }}>{s}</span>
               ))}
             </div>
           </div>
         )}
 
-        {/* Retake */}
-        <button onClick={reset} className="btn-secondary w-full">
-          <RefreshCw style={{ width: 14, height: 14, marginRight: 6 }} />
-          重新分析
-        </button>
+        {products.length > 0 && (
+          <div className="card p-4 space-y-3">
+            <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1218' }}>
+              你的產品庫
+              <span className="text-micro font-normal ml-2" style={{ color: '#9A7080' }}>色系適合度</span>
+            </h3>
+            <div className="space-y-1">
+              {products.slice(0, 8).map((p) => {
+                const compat = getCompat(p, profile);
+                return (
+                  <div key={p.id} className="flex items-center gap-3 p-2 rounded-md"
+                    style={{ background: compat === 'match' ? '#F0FAF4' : compat === 'avoid' ? '#FDF0F0' : '#FAFAF8' }}>
+                    {p.photo_url
+                      ? <img src={p.photo_url} alt={p.name} className="rounded object-cover flex-shrink-0" style={{ width: 36, height: 36 }} />
+                      : <div className="rounded flex-shrink-0 flex items-center justify-center"
+                          style={{ width: 36, height: 36, background: '#E8E0E4', color: '#5A4050', fontSize: 14, fontFamily: "'Cormorant Garamond',serif" }}>
+                          {p.name.slice(0, 1)}
+                        </div>}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-caption truncate" style={{ color: '#1A1218' }}>{p.name}</div>
+                      <div className="text-micro" style={{ color: '#9A7080' }}>{p.brand ?? '—'}</div>
+                    </div>
+                    {compat === 'match' && <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#2E7A4A' }} />}
+                    {compat === 'avoid' && <XCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#C04040' }} />}
+                    {compat === 'neutral' && <span className="text-micro" style={{ color: '#C8B4BC' }}>—</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-micro" style={{ color: '#B09898' }}>✓ 適合 · ✗ 建議避免 · — 需更多資訊</p>
+          </div>
+        )}
+
+        {result?.notes && <p className="text-micro text-center" style={{ color: '#B09898' }}>⚠️ {result.notes}</p>}
       </div>
     );
   }
@@ -420,29 +360,238 @@ export default function SkinToneClient({ products }: { products: Product[] }) {
   return null;
 }
 
-function Tag({ label, color, bg }: { label: string; color: string; bg: string }) {
-  return (
-    <span className="text-micro px-2.5 py-1 rounded-full"
-      style={{ background: color + '20', color, border: `0.5px solid ${color}50` }}>
-      {label}
-    </span>
-  );
+import { useState, useRef } from 'react';
+import { Camera, Upload, RefreshCw, Sparkles, CheckCircle, XCircle } from 'lucide-react';
+import type { Product } from '@/types/database';
+
+type SuitableShades = { lip: string[]; blush: string[]; eyeshadow: string[]; foundation: string[] };
+type ColorProfile = {
+  season: 'spring' | 'summer' | 'autumn' | 'winter';
+  warm_cool: 'warm' | 'cool' | 'neutral';
+  skin_depth: string;
+  undertone: string;
+  suitable_shades: SuitableShades;
+  avoid_shades: string[];
+  season_description: string;
+  analysed_at?: string;
+};
+type AnalysisResult = ColorProfile & { season_confidence: string; lama_message: string; notes: string };
+
+const SEASON_CONFIG: Record<string, { label: string; emoji: string; bg: string; color: string; border: string }> = {
+  spring: { label: 'Spring 春季型', emoji: '🌸', bg: '#FEF8F0', color: '#B06030', border: '#F0D4B0' },
+  summer: { label: 'Summer 夏季型', emoji: '🌿', bg: '#F0EAF4', color: '#7A50A0', border: '#D0B8E0' },
+  autumn: { label: 'Autumn 秋季型', emoji: '🍂', bg: '#FEF0E8', color: '#A04020', border: '#F0C4A0' },
+  winter: { label: 'Winter 冬季型', emoji: '❄️', bg: '#EAF0F8', color: '#304080', border: '#B0C4E0' },
+};
+
+function getCompat(product: Product, profile: ColorProfile): 'match' | 'avoid' | 'neutral' {
+  const shade = (product.notes ?? '').match(/色系：(.+)/)?.[1]?.trim();
+  if (!shade) return 'neutral';
+  const allSuitable = Object.values(profile.suitable_shades).flat();
+  if (allSuitable.some((s) => shade.includes(s) || s.includes(shade))) return 'match';
+  if (profile.avoid_shades?.some((s) => shade.includes(s) || s.includes(shade))) return 'avoid';
+  return 'neutral';
 }
 
-function ColorPill({ label, accent, bg }: { label: string; accent: string; bg: string }) {
-  return (
-    <span className="text-micro px-2.5 py-1 rounded-full"
-      style={{ background: bg, color: accent, border: `0.5px solid ${accent}40` }}>
-      {label}
-    </span>
-  );
-}
+export default function SkinToneClient({ existingProfile, products }: { existingProfile: ColorProfile | null; products: Product[] }) {
+  const [stage, setStage] = useState<'landing' | 'preview' | 'analyzing' | 'result'>(existingProfile ? 'result' : 'landing');
+  const [imageData, setImageData] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [profile, setProfile] = useState<ColorProfile | null>(existingProfile);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const camRef = useRef<HTMLInputElement>(null);
 
-function RecRow({ label, value, accent }: { label: string; value: string; accent: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      <span className="text-micro flex-shrink-0 mt-0.5" style={{ color: '#9A7080', minWidth: 48 }}>{label}</span>
-      <span className="text-caption" style={{ color: '#1A1218' }}>{value}</span>
+  function handleFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setImageData(dataUrl.split(',')[1]);
+      setImageUrl(dataUrl);
+      setStage('preview');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function analyse() {
+    if (!imageData) return;
+    setStage('analyzing');
+    setError(null);
+    try {
+      const res = await fetch('/api/skin-tone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageData, mediaType: 'image/jpeg' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setResult(data.result);
+      setProfile(data.result);
+      setStage('result');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '分析失敗');
+      setStage('preview');
+    }
+  }
+
+  if (stage === 'landing') return (
+    <div className="card p-6 space-y-5">
+      <div>
+        <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 400, color: '#1A1218' }}>找出你的個人色彩</h2>
+        <p className="text-caption mt-1" style={{ color: '#7A6068', lineHeight: 1.7 }}>
+          上傳一張臉部相片，AI 分析你的膚色冷暖調，推薦最適合你的彩妝色系。
+        </p>
+      </div>
+      <div className="rounded-md p-4 text-caption space-y-1" style={{ background: '#F5F0F2', color: '#7A6068' }}>
+        <div className="font-medium mb-1.5" style={{ color: '#1A1218' }}>📸 拍攝建議</div>
+        <div>· 自然光，避免濾鏡</div>
+        <div>· 淡妝或素顏效果最佳</div>
+        <div>· 結果僅供參考，光線會影響準確度</div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <button onClick={() => camRef.current?.click()}
+          className="flex flex-col items-center gap-2 p-4 rounded-md transition-colors"
+          style={{ border: '0.5px solid #D8C8D0', background: '#FAFAF8' }}>
+          <Camera className="w-6 h-6" style={{ color: '#B06070' }} />
+          <span className="text-caption" style={{ color: '#1A1218' }}>拍照</span>
+        </button>
+        <button onClick={() => fileRef.current?.click()}
+          className="flex flex-col items-center gap-2 p-4 rounded-md transition-colors"
+          style={{ border: '0.5px solid #D8C8D0', background: '#FAFAF8' }}>
+          <Upload className="w-6 h-6" style={{ color: '#B06070' }} />
+          <span className="text-caption" style={{ color: '#1A1218' }}>上傳相片</span>
+        </button>
+      </div>
+      <input ref={camRef} type="file" accept="image/*" capture="user" className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+      <input ref={fileRef} type="file" accept="image/*" className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
     </div>
   );
+
+  if (stage === 'preview') return (
+    <div className="card p-5 space-y-4">
+      {imageUrl && <img src={imageUrl} alt="預覽" className="w-full rounded-md object-cover" style={{ maxHeight: 300 }} />}
+      {error && <p className="text-caption" style={{ color: '#C04040' }}>{error}</p>}
+      <div className="flex gap-2">
+        <button onClick={() => { setStage('landing'); setImageData(null); setImageUrl(null); }} className="btn-secondary flex-1">
+          <RefreshCw className="w-4 h-4 mr-1.5" />換張相
+        </button>
+        <button onClick={analyse} className="btn-primary flex-1">
+          <Sparkles className="w-4 h-4 mr-1.5" />開始分析
+        </button>
+      </div>
+    </div>
+  );
+
+  if (stage === 'analyzing') return (
+    <div className="pt-16 text-center space-y-4">
+      <div className="inline-block animate-spin"><Sparkles className="w-10 h-10" style={{ color: '#B06070' }} /></div>
+      <h2 className="fini-dash-title" style={{ fontSize: 20 }}>分析緊你的個人色彩...</h2>
+      <p className="text-caption" style={{ color: '#9A7080' }}>約需 10–15 秒</p>
+    </div>
+  );
+
+  if (stage === 'result' && profile) {
+    const cfg = SEASON_CONFIG[profile.season] ?? SEASON_CONFIG.autumn;
+    return (
+      <div className="space-y-4">
+        <div className="card p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
+              style={{ background: cfg.bg, border: `0.5px solid ${cfg.border}` }}>
+              <span style={{ fontSize: 18 }}>{cfg.emoji}</span>
+              <span style={{ fontSize: 14, fontWeight: 500, color: cfg.color }}>{cfg.label}</span>
+            </div>
+            <button onClick={() => setStage('landing')} className="text-caption" style={{ color: '#B06070' }}>重新分析</button>
+          </div>
+          {result?.lama_message && (
+            <div className="rounded-xl p-3" style={{ background: '#FDF0F4', border: '0.5px solid #E8C8D0' }}>
+              <p className="text-caption" style={{ color: '#7A3050', lineHeight: 1.7 }}>🐱 {result.lama_message}</p>
+            </div>
+          )}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: '冷暖調', value: profile.warm_cool === 'warm' ? '暖調' : profile.warm_cool === 'cool' ? '冷調' : '中性' },
+              { label: '膚色深淺', value: ({ fair:'白皙', light:'偏白', medium:'中等', tan:'小麥', deep:'深色' } as Record<string,string>)[profile.skin_depth] ?? profile.skin_depth },
+              { label: '底色', value: ({ pink:'粉紅底', yellow:'黃底', olive:'橄欖底', neutral:'中性底' } as Record<string,string>)[profile.undertone] ?? profile.undertone },
+            ].map((item) => (
+              <div key={item.label} className="rounded-md p-3 text-center" style={{ background: '#F5F0F2' }}>
+                <div className="text-micro mb-1" style={{ color: '#9A7080' }}>{item.label}</div>
+                <div className="text-caption font-medium" style={{ color: '#1A1218' }}>{item.value}</div>
+              </div>
+            ))}
+          </div>
+          {profile.season_description && (
+            <p className="text-caption" style={{ color: '#7A6068', lineHeight: 1.75 }}>{profile.season_description}</p>
+          )}
+        </div>
+
+        <div className="card p-4 space-y-3">
+          <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1218' }}>建議色系</h3>
+          {Object.entries(profile.suitable_shades).map(([cat, shades]) => (
+            <div key={cat} className="flex items-start gap-3">
+              <span className="text-micro flex-shrink-0 mt-0.5 w-10" style={{ color: '#9A7080' }}>
+                {({ lip:'唇妝', blush:'腮紅', eyeshadow:'眼影', foundation:'粉底' } as Record<string,string>)[cat] ?? cat}
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {(shades as string[]).map((s) => (
+                  <span key={s} className="text-micro px-2 py-0.5 rounded-full"
+                    style={{ background: cfg.bg, color: cfg.color, border: `0.5px solid ${cfg.border}` }}>{s}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {profile.avoid_shades?.length > 0 && (
+          <div className="card p-4 space-y-2">
+            <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1218' }}>建議避免</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.avoid_shades.map((s) => (
+                <span key={s} className="text-micro px-2 py-0.5 rounded-full"
+                  style={{ background: '#F5F0F2', color: '#9A7080', border: '0.5px solid #E0D4D8' }}>{s}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {products.length > 0 && (
+          <div className="card p-4 space-y-3">
+            <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1218' }}>
+              你的產品庫
+              <span className="text-micro font-normal ml-2" style={{ color: '#9A7080' }}>色系適合度</span>
+            </h3>
+            <div className="space-y-1">
+              {products.slice(0, 8).map((p) => {
+                const compat = getCompat(p, profile);
+                return (
+                  <div key={p.id} className="flex items-center gap-3 p-2 rounded-md"
+                    style={{ background: compat === 'match' ? '#F0FAF4' : compat === 'avoid' ? '#FDF0F0' : '#FAFAF8' }}>
+                    {p.photo_url
+                      ? <img src={p.photo_url} alt={p.name} className="rounded object-cover flex-shrink-0" style={{ width: 36, height: 36 }} />
+                      : <div className="rounded flex-shrink-0 flex items-center justify-center"
+                          style={{ width: 36, height: 36, background: '#E8E0E4', color: '#5A4050', fontSize: 14, fontFamily: "'Cormorant Garamond',serif" }}>
+                          {p.name.slice(0, 1)}
+                        </div>}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-caption truncate" style={{ color: '#1A1218' }}>{p.name}</div>
+                      <div className="text-micro" style={{ color: '#9A7080' }}>{p.brand ?? '—'}</div>
+                    </div>
+                    {compat === 'match' && <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#2E7A4A' }} />}
+                    {compat === 'avoid' && <XCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#C04040' }} />}
+                    {compat === 'neutral' && <span className="text-micro" style={{ color: '#C8B4BC' }}>—</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-micro" style={{ color: '#B09898' }}>✓ 適合 · ✗ 建議避免 · — 需更多資訊</p>
+          </div>
+        )}
+        {result?.notes && <p className="text-micro text-center" style={{ color: '#B09898' }}>⚠️ {result.notes}</p>}
+      </div>
+    );
+  }
+  return null;
 }
