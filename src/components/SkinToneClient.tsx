@@ -17,8 +17,9 @@ type ColorProfile = {
 };
 type AnalysisResult = ColorProfile & { season_confidence: string; lama_message: string; notes: string };
 type VeinColor = 'blue_purple' | 'green' | 'unclear';
-type Stage = 'landing' | 'vein' | 'jewelry' | 'wrist' | 'face' | 'analyzing' | 'result';
+type Stage = 'landing' | 'vein' | 'jewelry' | 'undertone' | 'wrist' | 'face' | 'analyzing' | 'result';
 type JewelryPref = 'gold' | 'silver' | 'both';
+type UndertonePref = 'yellow' | 'pink' | 'olive' | 'unclear';
 
 const SEASON_CONFIG: Record<string, { label: string; emoji: string; bg: string; color: string; border: string }> = {
   spring: { label: 'Spring 春季型', emoji: '🌸', bg: '#FEF8F0', color: '#B06030', border: '#F0D4B0' },
@@ -121,6 +122,7 @@ export default function SkinToneClient({ existingProfile, products }: { existing
   const [stage, setStage] = useState<Stage>(existingProfile ? 'result' : 'landing');
   const [veinColor, setVeinColor] = useState<VeinColor | null>(null);
   const [jewelryPref, setJewelryPref] = useState<JewelryPref | null>(null);
+  const [undertonePref, setUndertonePref] = useState<UndertonePref | null>(null);
   const [wristData, setWristData] = useState<string | null>(null);
   const [faceData, setFaceData] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -135,7 +137,7 @@ export default function SkinToneClient({ existingProfile, products }: { existing
       const res = await fetch('/api/skin-tone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wristData, faceData, mediaType: 'image/jpeg', veinColor, jewelryPref }),
+        body: JSON.stringify({ wristData, faceData, mediaType: 'image/jpeg', veinColor, jewelryPref, undertonePref }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -165,8 +167,9 @@ export default function SkinToneClient({ existingProfile, products }: { existing
         {[
           { step: '1', label: '靜脈顏色問題', desc: '翻轉手腕看靜脈' },
           { step: '2', label: '金銀飾物問題', desc: '判斷冷暖調' },
-          { step: '3', label: '拍攝手腕內側', desc: '判斷底色最準確' },
-          { step: '4', label: '拍攝臉部正面', desc: '手持白紙校正色溫' },
+          { step: '3', label: '皮膚底色問題', desc: '唔確定可以跳過' },
+          { step: '4', label: '拍攝手腕內側', desc: '判斷底色最準確' },
+          { step: '5', label: '拍攝臉部正面', desc: '手持白紙校正色溫' },
         ].map((s) => (
           <div key={s.step} className="flex items-center gap-3 p-2.5 rounded-md" style={{ background: '#F5F0F2' }}>
             <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-caption font-medium"
@@ -290,8 +293,8 @@ export default function SkinToneClient({ existingProfile, products }: { existing
         ))}
       </div>
 
-      <button onClick={() => setStage('wrist')} disabled={!jewelryPref} className="btn-primary w-full">
-        下一步：拍手腕 →
+      <button onClick={() => setStage('undertone')} disabled={!jewelryPref} className="btn-primary w-full">
+        下一步：底色問題 →
       </button>
       <button onClick={() => setStage('vein')} className="text-caption w-full text-center" style={{ color: '#B09898' }}>
         ← 返回修改靜脈答案
@@ -299,16 +302,84 @@ export default function SkinToneClient({ existingProfile, products }: { existing
     </div>
   );
 
+  // ── UNDERTONE QUESTION ──
+  if (stage === 'undertone') return (
+    <div className="card p-6 space-y-5">
+      <div>
+        <div className="text-micro mb-1" style={{ color: '#9A7080' }}>第 3 步 / 共 5 步</div>
+        <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 20, fontWeight: 400, color: '#1A1218' }}>
+          你嘅皮膚底色？
+        </h2>
+        <p className="text-caption mt-2" style={{ color: '#7A6068', lineHeight: 1.7 }}>
+          唔確定可以揀「唔確定」，AI 會靠其他資訊判斷。如果你對自己膚色有了解，揀準確嘅底色可以大幅提升準確度。
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {[
+          {
+            value: 'yellow' as UndertonePref,
+            emoji: '🟡',
+            label: '黃調',
+            desc: '皮膚帶明顯黃色，唔帶綠，曬後變金啡色',
+          },
+          {
+            value: 'pink' as UndertonePref,
+            emoji: '🩷',
+            label: '粉紅調',
+            desc: '皮膚帶粉紅/玫瑰色，曬後容易變紅',
+          },
+          {
+            value: 'olive' as UndertonePref,
+            emoji: '🫒',
+            label: '橄欖/灰綠調',
+            desc: '皮膚帶輕微灰綠色，唔係純黃唔係純粉紅，曬後變橄欖色。亞洲人常見，搵粉底色號通常比較困難',
+          },
+          {
+            value: 'unclear' as UndertonePref,
+            emoji: '🤷',
+            label: '唔確定',
+            desc: '唔清楚自己底色，交俾AI判斷',
+          },
+        ].map((opt) => (
+          <button key={opt.value} onClick={() => setUndertonePref(opt.value)}
+            className="w-full flex items-center gap-4 p-4 rounded-md text-left transition-all"
+            style={{
+              border: undertonePref === opt.value ? '1.5px solid #B06070' : '0.5px solid #E0D4D8',
+              background: undertonePref === opt.value ? '#FDF0F4' : '#FAFAF8',
+            }}>
+            <span style={{ fontSize: 24 }}>{opt.emoji}</span>
+            <div className="flex-1">
+              <div className="text-caption font-medium" style={{ color: '#1A1218' }}>{opt.label}</div>
+              <div className="text-micro mt-0.5" style={{ color: '#9A7080' }}>{opt.desc}</div>
+            </div>
+            {undertonePref === opt.value && (
+              <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: '#B06070', color: 'white', fontSize: 11 }}>✓</div>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <button onClick={() => setStage('wrist')} disabled={!undertonePref} className="btn-primary w-full">
+        下一步：拍手腕 →
+      </button>
+      <button onClick={() => setStage('jewelry')} className="text-caption w-full text-center" style={{ color: '#B09898' }}>
+        ← 返回修改飾物答案
+      </button>
+    </div>
+  );
+
   // ── WRIST PHOTO ──
   if (stage === 'wrist') return (
     <ImageCapture
-      subtitle="第 3 步 / 共 4 步"
+      subtitle="第 4 步 / 共 5 步"
       title="拍攝手腕內側"
       instruction="將手腕翻轉，在自然光下拍攝手腕內側皮膚。確保畫面清晰，可以看到靜脈。"
       tip="自然光效果最好，避免黃燈或強烈閃光。手腕放鬆，不要繃緊。"
       onCapture={(data) => { setWristData(data); setStage('face'); }}
-      onBack={() => setStage('jewelry')}
-      backLabel="返回修改飾物答案"
+      onBack={() => setStage('undertone')}
+      backLabel="返回修改底色答案"
     />
   );
 
@@ -321,7 +392,7 @@ export default function SkinToneClient({ existingProfile, products }: { existing
         </div>
       )}
       <ImageCapture
-        subtitle="第 4 步 / 共 4 步"
+        subtitle="第 5 步 / 共 5 步"
         title="拍攝臉部正面"
         instruction="手持一張白紙靠近臉旁，在自然光下正面拍攝。白紙幫助AI校正光線色溫，令膚色分析更準確。素顏或淡妝效果最佳，避免濾鏡。"
         tip="白紙放喺臉側或下巴位置即可，確保臉部同白紙都在畫面內。拍完會立即開始分析！"
