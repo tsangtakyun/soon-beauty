@@ -11,7 +11,14 @@ export type CapturedImage = {
   previewUrl: string;
 };
 
-const STEPS = [
+const STEPS: {
+  type: 'front' | 'bottom' | 'expiry' | 'ingredients';
+  title: string;
+  instruction: string;
+  required: boolean;
+  tip?: string;
+  benefit?: string;
+}[] = [
   {
     type: 'front' as const,
     title: '① 產品正面',
@@ -32,9 +39,11 @@ const STEPS = [
   },
   {
     type: 'ingredients' as const,
-    title: '④ 成份表（如有）',
-    instruction: '拍攝產品上嘅成份表（INCI list）。字體越清晰越好，AI 可以分析成份功效及注意事項。若找不到可跳過。',
+    title: '④ 成份表',
+    instruction: '拍攝產品背面或底部嘅成份表（INCI list）。影咗AI可以分析真實成份、功效同注意事項，比估算準確得多。字體較細，請盡量靠近拍攝，確保清晰。',
     required: false,
+    tip: '成份表通常係產品背面最細嗰行字，以「Ingredients:」或「成分:」開頭。',
+    benefit: '影咗可以知道：主要功效成份、敏感成份提示、適合/不適合膚質',
   },
 ];
 
@@ -152,15 +161,36 @@ export default function CameraCapture({
             </div>
           </div>
         ) : (
-          <div className="w-full max-w-md text-center space-y-6">
+          <div className="w-full max-w-md text-center space-y-5">
             <div className="text-white/80 text-body leading-relaxed px-4">
               {currentStep.instruction}
             </div>
+
+            {/* Ingredients step — show benefit banner */}
+            {currentStep.type === 'ingredients' && currentStep.benefit && (
+              <div className="mx-4 rounded-xl p-4 text-left space-y-2"
+                style={{ background: 'rgba(176,96,112,0.25)', border: '0.5px solid rgba(253,248,246,0.3)' }}>
+                <div className="text-white/90 text-caption font-medium">✨ 影咗可以知道：</div>
+                {currentStep.benefit.split('、').map((b, i) => (
+                  <div key={i} className="text-white/75 text-caption">· {b}</div>
+                ))}
+              </div>
+            )}
+
+            {/* Tip */}
+            {currentStep.tip && (
+              <div className="mx-4 rounded-lg p-3 text-caption text-white/60 text-left"
+                style={{ background: 'rgba(255,255,255,0.08)' }}>
+                💡 {currentStep.tip}
+              </div>
+            )}
+
             {error && (
-              <div className="bg-red-500/20 border border-red-500/40 rounded p-3 text-caption text-red-100">
+              <div className="bg-red-500/20 border border-red-500/40 rounded p-3 text-caption text-red-100 mx-4">
                 {error}
               </div>
             )}
+
             <button
               onClick={openCamera}
               disabled={processing}
@@ -169,9 +199,14 @@ export default function CameraCapture({
               <Camera className="w-6 h-6" />
               {processing ? '處理中...' : '開啟相機拍攝'}
             </button>
+
             {!currentStep.required && (
-              <button onClick={skipStep} className="text-white/70 hover:text-white text-caption inline-flex items-center gap-1">
-                <SkipForward className="w-4 h-4" />跳過此步驟
+              <button onClick={skipStep}
+                className="text-white/50 hover:text-white/80 text-caption inline-flex items-center gap-1 transition-colors">
+                <SkipForward className="w-4 h-4" />
+                {currentStep.type === 'ingredients'
+                  ? '跳過（成份分析將以估算代替）'
+                  : '跳過此步驟'}
               </button>
             )}
           </div>
