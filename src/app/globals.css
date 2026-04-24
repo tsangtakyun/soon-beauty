@@ -1702,11 +1702,26 @@
   justify-content: center;
   align-items: center;
   min-height: 320px;
+  position: relative;
 }
 
 .fini-dash-home-mascot-art {
   width: min(100%, 520px);
   height: auto;
+}
+
+.fini-dash-home-mascot-text {
+  position: absolute;
+  top: 10%;
+  left: 9%;
+  width: 54%;
+  pointer-events: none;
+}
+
+.fini-dash-home-mascot-text .fini-lama-greeting-text {
+  font-size: 15px;
+  line-height: 1.75;
+  color: #8f6d78;
 }
 
 .fini-dash-top-row {
@@ -2397,6 +2412,17 @@
 
   .fini-dash-pan-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .fini-dash-home-mascot-text {
+    top: 8%;
+    left: 8%;
+    width: 58%;
+  }
+
+  .fini-dash-home-mascot-text .fini-lama-greeting-text {
+    font-size: 14px;
+    line-height: 1.65;
   }
 
   .fini-makeup-log-image,
