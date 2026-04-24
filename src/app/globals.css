@@ -1833,13 +1833,28 @@
   color: #8d786b;
 }
 
-.fini-makeup-product-grid {
+.fini-makeup-help {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #8d786b;
+}
+
+.fini-makeup-search-wrap {
+  width: min(100%, 260px);
+}
+
+.fini-makeup-search {
+  min-height: 42px;
+}
+
+.fini-makeup-category-row {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.fini-makeup-product-pill {
+.fini-makeup-category-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1847,16 +1862,204 @@
   padding: 0 14px;
   border-radius: 999px;
   border: 1px solid #dfd2c5;
+  background: rgba(255, 255, 255, 0.9);
+  color: #7a624e;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.fini-makeup-category-pill span {
+  color: #a08873;
+  font-size: 12px;
+}
+
+.fini-makeup-category-pill.is-active {
+  border-color: #c9ab8d;
+  background: #f3e7da;
+  color: #6c503b;
+}
+
+.fini-makeup-category-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.fini-makeup-category-panel {
+  padding: 14px;
+  border-radius: 24px;
+  border: 1px solid #eadfd2;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.fini-makeup-category-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.fini-makeup-category-head h3 {
+  margin: 0;
+  font-size: 15px;
+  color: #2f2620;
+}
+
+.fini-makeup-category-head span {
+  font-size: 12px;
+  color: #9d8777;
+}
+
+.fini-makeup-category-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.fini-makeup-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.fini-makeup-product-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 60px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid #dfd2c5;
   background: rgba(255, 255, 255, 0.92);
   color: #6f5a4f;
   font-size: 13px;
   cursor: pointer;
+  text-align: left;
 }
 
 .fini-makeup-product-pill.is-active {
   border-color: #c9ab8d;
   background: #f3e7da;
   color: #6c503b;
+}
+
+.fini-makeup-product-pill-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fini-makeup-product-pill-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #44352b;
+}
+
+.fini-makeup-product-pill-copy em {
+  margin-top: 4px;
+  font-style: normal;
+  font-size: 11px;
+  color: #9d8777;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fini-makeup-submit {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #aa825f 0%, #95704f 100%);
+  color: #fffdf9;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 14px 24px rgba(170, 130, 95, 0.18);
+  cursor: pointer;
+}
+
+.fini-makeup-submit:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.fini-makeup-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fini-makeup-premium-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.fini-premium-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f3e7da;
+  color: #7f6048;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fini-makeup-template-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fini-makeup-template-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 150px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid #eadfd2;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 240, 230, 0.9) 100%);
+  text-align: left;
+  cursor: pointer;
+}
+
+.fini-makeup-template-card.is-active {
+  border-color: #c9ab8d;
+  box-shadow: 0 14px 28px rgba(126, 101, 79, 0.08);
+}
+
+.fini-makeup-template-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2f2620;
+}
+
+.fini-makeup-template-body {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #7a6656;
+}
+
+.fini-makeup-premium-note {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: #fbf4ea;
+  border: 1px dashed #dfccb7;
+  color: #8b725c;
+  font-size: 13px;
+  line-height: 1.8;
 }
 
 .fini-makeup-log-row {
@@ -2292,6 +2495,19 @@
 
   .fini-makeup-log-row {
     grid-template-columns: 1fr;
+  }
+
+  .fini-makeup-product-grid,
+  .fini-makeup-template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fini-makeup-premium-head {
+    flex-direction: column;
+  }
+
+  .fini-makeup-search-wrap {
+    width: 100%;
   }
 
   .fini-home {

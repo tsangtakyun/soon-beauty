@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import RecentMakeupForm from '@/components/RecentMakeupForm';
-import type { Product, RecentMakeupLog } from '@/types/database';
+import type { Product, RecentMakeupLog, Category } from '@/types/database';
 
 export default async function RecentMakeupPage() {
   const supabase = await createClient();
@@ -12,7 +12,7 @@ export default async function RecentMakeupPage() {
 
   if (!user) return null;
 
-  const [{ data: products }, { data: logs }] = await Promise.all([
+  const [{ data: products }, { data: logs }, { data: categories }] = await Promise.all([
     supabase
       .from('products')
       .select('*')
@@ -24,6 +24,11 @@ export default async function RecentMakeupPage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(12),
+    supabase
+      .from('categories')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('sort_order', { ascending: true }),
   ]);
 
   return (
@@ -35,10 +40,10 @@ export default async function RecentMakeupPage() {
 
       <section className="fini-page-hero fini-page-hero-compact">
         <div className="fini-page-hero-copy">
-          <p className="fini-section-kicker">Beauty Journal</p>
+          <p className="fini-section-kicker">妝容記錄</p>
           <h1 className="fini-dash-title">最近化妝</h1>
           <p className="fini-dash-sub">
-            將自拍、妝容與使用產品放在同一頁，之後回看今次搭配會更直覺。
+            將自拍、妝容與使用產品整理在同一頁，之後回看當日搭配會更直覺。
           </p>
         </div>
       </section>
@@ -46,6 +51,7 @@ export default async function RecentMakeupPage() {
       <RecentMakeupForm
         products={(products as Product[] | null) ?? []}
         logs={(logs as RecentMakeupLog[] | null) ?? []}
+        categories={(categories as Category[] | null) ?? []}
       />
     </div>
   );
