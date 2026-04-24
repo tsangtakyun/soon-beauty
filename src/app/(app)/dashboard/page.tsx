@@ -83,7 +83,7 @@ export default async function DashboardPage() {
     <div className="space-y-6 animate-fade-in">
       <section className="fini-dash-home-hero">
         <div className="fini-dash-home-copy">
-          <p className="fini-section-kicker">Beauty Home</p>
+          <p className="fini-section-kicker">個人美容主頁</p>
           <h1 className="fini-dash-title">個人首頁</h1>
           <p className="fini-dash-sub">
             {profile?.display_name ? `${profile.display_name}，` : ''}
@@ -110,7 +110,7 @@ export default async function DashboardPage() {
         <section className="fini-section-panel">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="fini-section-kicker">Beauty Journal</p>
+              <p className="fini-section-kicker">妝容記錄</p>
               <h2 className="fini-section-title">最近化妝</h2>
             </div>
             <Link href="/recent-makeup" className="fini-section-link">查看全部</Link>
@@ -193,7 +193,7 @@ export default async function DashboardPage() {
         <section className="fini-section-panel">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="fini-section-kicker">My Products</p>
+              <p className="fini-section-kicker">我的產品</p>
               <h2 className="fini-section-title">需要處理的產品</h2>
             </div>
             <Link href="/products" className="fini-section-link">查看全部</Link>
@@ -224,7 +224,7 @@ export default async function DashboardPage() {
         <section className="fini-section-panel">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="fini-section-kicker">New In</p>
+              <p className="fini-section-kicker">最新加入</p>
               <h2 className="fini-section-title">最近新增產品</h2>
             </div>
             <Link href="/products/scan" className="fini-btn-add">
@@ -252,7 +252,7 @@ export default async function DashboardPage() {
       <section className="fini-section-panel fini-dash-pan-panel">
         <div className="flex items-center justify-between mb-4">
           <div className="fini-dash-pan-head">
-            <p className="fini-section-kicker">Project Pan</p>
+            <p className="fini-section-kicker">鐵皮計劃</p>
             <h2 className="fini-section-title">鐵皮計劃情況</h2>
           </div>
           <Link href="/empty-bottle" className="fini-section-link">查看計劃</Link>
