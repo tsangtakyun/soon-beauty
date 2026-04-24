@@ -115,12 +115,11 @@ export default async function ProductsPage({
 
   return (
     <div className="space-y-5 animate-fade-in">
-
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <section className="fini-page-hero fini-page-hero-compact">
+        <div className="fini-page-hero-copy">
+          <p className="fini-section-kicker">Beauty Library</p>
           <h1 className="fini-dash-title">我的產品</h1>
-          <p className="fini-dash-sub">共 {list.length} 件產品</p>
+          <p className="fini-dash-sub">共 {list.length} 件產品，按分類、狀態同節奏慢慢整理。</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Link href="/analyze" className="fini-btn-analyze">
@@ -132,9 +131,9 @@ export default async function ProductsPage({
             新增
           </Link>
         </div>
-      </div>
+      </section>
 
-      {/* Expiry filter pills */}
+      <div className="fini-section-panel space-y-4">
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
         <FilterPill href="/products"                  label="全部"     active={filter==='all' && !categoryId && !groupFilter} />
         <FilterPill href="/products?filter=expiring"  label="即將過期" active={filter==='expiring'} />
@@ -143,15 +142,13 @@ export default async function ProductsPage({
         <FilterPill href="/products?filter=unopened"  label="未開封"   active={filter==='unopened'} />
       </div>
 
-      {/* Sort pills */}
       <div className="flex gap-2 items-center overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
-        <span className="text-micro flex-shrink-0" style={{ color: '#9A7080' }}>排序：</span>
+        <span className="text-micro flex-shrink-0" style={{ color: '#8D786B' }}>排序：</span>
         <FilterPill href={buildHref(rawParams, { sort: 'expiry' })}   label="快過期優先" active={sort === 'expiry'} small />
         <FilterPill href={buildHref(rawParams, { sort: 'newest' })}   label="最新加入"   active={sort === 'newest'} small />
         <FilterPill href={buildHref(rawParams, { sort: 'name' })}     label="名稱"       active={sort === 'name'}   small />
       </div>
 
-      {/* Group filter */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
         <FilterPill href="/products" label="所有類別" active={!groupFilter} small />
         {Object.entries(GROUP_LABELS).map(([key, label]) => (
@@ -164,15 +161,15 @@ export default async function ProductsPage({
           />
         ))}
       </div>
+      </div>
 
-      {/* Product list — grouped */}
       {list.length === 0 ? (
-        <div className="card p-12 text-center">
-          <div className="w-14 h-14 rounded-full bg-ink-100 mx-auto mb-4 flex items-center justify-center">
-            <Search className="w-6 h-6 text-ink-400" />
+        <div className="fini-empty-state p-12 text-center">
+          <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: '#F2E6D9' }}>
+            <Search className="w-6 h-6" style={{ color: '#8A6A52' }} />
           </div>
-          <p className="text-body mb-1" style={{ color: '#1A1218' }}>沒有符合條件的產品</p>
-          <p className="text-caption mb-4" style={{ color: '#9A7080' }}>
+          <p className="text-body mb-1" style={{ color: '#2F2620' }}>沒有符合條件的產品</p>
+          <p className="text-caption mb-4" style={{ color: '#8D786B' }}>
             {filter === 'all' ? '請新增您的第一件產品' : '請嘗試其他篩選條件'}
           </p>
           {filter === 'all' && (
@@ -189,20 +186,18 @@ export default async function ProductsPage({
             if (groupProducts.length === 0 && !showAll) return null;
             return (
               <section key={parent.id}>
-                {/* Group header */}
                 <div
-                  className="flex items-center gap-2 mb-2 px-1 py-1.5 rounded-md"
-                  style={{ background: parent.color + '60' }}
+                  className="fini-group-header"
+                  style={{ background: `linear-gradient(180deg, ${parent.color}55 0%, #fffaf5 100%)` }}
                 >
-                  <span className="text-caption font-medium" style={{ color: '#1A1218', letterSpacing: '0.04em' }}>
+                  <span className="text-caption font-medium" style={{ color: '#2F2620', letterSpacing: '0.04em' }}>
                     {parent.name}
                   </span>
-                  <span className="text-micro" style={{ color: '#9A7080' }}>
+                  <span className="text-micro" style={{ color: '#8D786B' }}>
                     {groupProducts.length} 件
                   </span>
                 </div>
 
-                {/* Sub-category chips with products */}
                 <div className="flex gap-2 flex-wrap mb-3">
                   {kids
                     .filter((k) => catIdsWithProducts.has(k.id))
@@ -214,15 +209,15 @@ export default async function ProductsPage({
                         <Link
                           key={k.id}
                           href={`/products?category=${k.id}`}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption transition-all ${
-                            categoryId === k.id ? 'ring-2 ring-offset-1 ring-ink-400' : 'hover:opacity-80'
+                          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-caption transition-all ${
+                            categoryId === k.id ? 'ring-2 ring-offset-1 ring-[#B79572]' : 'hover:opacity-80'
                           }`}
-                          style={{ background: k.color, color: '#3A2830' }}
+                          style={{ background: `${k.color}B0`, color: '#4A372E', border: '1px solid rgba(255,255,255,0.55)' }}
                         >
                           {k.name}
                           <span
                             className="text-micro rounded-full px-1.5"
-                            style={{ background: 'rgba(0,0,0,0.1)' }}
+                            style={{ background: 'rgba(255,255,255,0.55)' }}
                           >
                             {count}
                           </span>
@@ -231,7 +226,6 @@ export default async function ProductsPage({
                     })}
                 </div>
 
-                {/* Products under this group — show if primary OR tag matches */}
                 <div className="space-y-2">
                   {groupProducts.map((p) => (
                     <ProductCard key={p.id} product={p} />
@@ -249,9 +243,9 @@ export default async function ProductsPage({
             if (uncategorised.length === 0) return null;
             return (
               <section>
-                <div className="flex items-center gap-2 mb-2 px-1 py-1.5 rounded-md" style={{ background: '#F0EEE8' }}>
-                  <span className="text-caption font-medium" style={{ color: '#1A1218' }}>未分類</span>
-                  <span className="text-micro" style={{ color: '#9A7080' }}>{uncategorised.length} 件</span>
+                <div className="fini-group-header" style={{ background: 'linear-gradient(180deg, #F4ECE3 0%, #fffaf5 100%)' }}>
+                  <span className="text-caption font-medium" style={{ color: '#2F2620' }}>未分類</span>
+                  <span className="text-micro" style={{ color: '#8D786B' }}>{uncategorised.length} 件</span>
                 </div>
                 <div className="space-y-2">
                   {uncategorised.map((p) => <ProductCard key={p.id} product={p} />)}
@@ -291,14 +285,14 @@ function FilterPill({ href, label, active, small }: {
   return (
     <Link
       href={href}
-      className={`inline-flex items-center rounded-full whitespace-nowrap transition-colors ${
+      className={`inline-flex items-center rounded-full whitespace-nowrap transition-colors border ${
         small ? 'px-3 py-1 text-micro' : 'px-3.5 py-1.5 text-caption'
       } ${
         active
           ? 'text-white'
-          : 'bg-white text-ink-700 border border-ink-200 hover:bg-ink-50'
+          : 'bg-white text-ink-700 border-[#E7D8CA] hover:bg-[#FBF4EA]'
       }`}
-      style={active ? { background: '#1A1218' } : {}}
+      style={active ? { background: 'linear-gradient(180deg, #A67C52 0%, #8A6A52 100%)', borderColor: '#8A6A52' } : { color: '#6E594B' }}
     >
       {label}
     </Link>
@@ -312,20 +306,20 @@ function ProductCard({ product }: { product: ProductWithExpiry }) {
   return (
     <Link
       href={`/products/${product.id}`}
-      className="card p-3 flex items-center gap-3 hover:shadow-float transition-shadow"
+      className="fini-product-row"
     >
       {product.photo_url ? (
         <img
           src={product.photo_url}
           alt={product.name}
-          className="flex-shrink-0 rounded object-cover"
-          style={{ width: 44, height: 44 }}
+          className="flex-shrink-0 rounded-[18px] object-cover"
+          style={{ width: 52, height: 52 }}
         />
       ) : (
         <div
-          className="flex-shrink-0 rounded flex items-center justify-center font-display"
+          className="flex-shrink-0 rounded-[18px] flex items-center justify-center font-display"
           style={{
-            width: 44, height: 44,
+            width: 52, height: 52,
             background: product.category_color ?? '#E8E0E4',
             color: '#5A4050', fontSize: 18,
           }}
@@ -335,15 +329,15 @@ function ProductCard({ product }: { product: ProductWithExpiry }) {
       )}
 
       <div className="min-w-0 flex-1">
-        <div className="text-body font-medium truncate" style={{ color: '#1A1218' }}>
+        <div className="text-body font-medium truncate" style={{ color: '#2F2620' }}>
           {product.name}
         </div>
-        <div className="text-micro truncate" style={{ color: '#9A7080' }}>
+        <div className="text-micro truncate" style={{ color: '#8D786B' }}>
           {[product.brand, product.category_name].filter(Boolean).join(' · ') || '—'}
         </div>
       </div>
 
-      <div className={`text-caption font-medium px-2.5 py-1 rounded flex-shrink-0 ${statusColor}`}>
+      <div className={`text-caption font-medium px-3 py-1.5 rounded-full flex-shrink-0 ${statusColor}`}>
         {formatDaysLabel(product.days_until_expiry)}
       </div>
     </Link>

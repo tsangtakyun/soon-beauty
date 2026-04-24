@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/server';
-import { Plus, FlaskConical } from 'lucide-react';
+import { Plus, FlaskConical, Sparkles, Package2 } from 'lucide-react';
 import { formatDaysLabel, getExpiryStatus, STATUS_COLORS } from '@/lib/utils';
 import type { ProductWithExpiry } from '@/types/database';
 
@@ -59,47 +59,50 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
+      <section className="fini-page-hero">
+        <div className="fini-page-hero-copy">
+          <p className="fini-section-kicker">Today In Your Beauty Home</p>
+          <h1 className="fini-dash-title">慢慢整理，靚靚用完。</h1>
+          <p className="fini-dash-sub">Neaty Beauty 會幫你留意快到期產品、整理正在使用中嘅收藏，同埋保留每次完成嘅小成就。</p>
 
-      {/* Lama greeting card */}
-      <div className="fini-lama-greeting">
-        <div className="fini-lama-greeting-img">
-          <Image src="/lama.svg" alt="Lama" width={80} height={106} />
+          <div className="fini-page-hero-actions">
+            <Link href="/analyze" className="fini-btn-analyze">
+              <FlaskConical style={{ width: 14, height: 14 }} />
+              分析成份
+            </Link>
+            <Link href="/products/scan" className="fini-btn-add">
+              <Plus style={{ width: 14, height: 14 }} />
+              新增產品
+            </Link>
+          </div>
         </div>
-        <div className="fini-lama-greeting-bubble">
-          <p className="fini-lama-greeting-text">{lamaMsg}</p>
+
+        <div className="fini-page-hero-illustration">
+          <div className="fini-page-hero-mascot">
+            <Image src="/lama.svg" alt="Neaty Beauty 品牌貓咪角色" width={104} height={136} />
+          </div>
+          <div className="fini-page-hero-bubble">
+            <p className="fini-lama-greeting-text">{lamaMsg}</p>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-2 justify-end">
-        <Link href="/analyze" className="fini-btn-analyze">
-          <FlaskConical style={{ width: 14, height: 14 }} />
-          分析成份
-        </Link>
-        <Link href="/products/scan" className="fini-btn-add">
-          <Plus style={{ width: 14, height: 14 }} />
-          新增產品
-        </Link>
-      </div>
-
-      {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="總數"     value={stats.total_count ?? 0}         bg="#F0EAF4" color="#7A5090" border="#D8C8E8"/>
-        <StatCard label="使用中"   value={stats.in_use_count ?? 0}        bg="#E8F0FB" color="#3A68B0" border="#C4D8F4"/>
-        <StatCard label="即將過期" value={stats.expiring_soon_count ?? 0} bg="#FDF0E8" color="#C06030" border="#F0D4B8"/>
-        <StatCard label="已用完"   value={stats.finished_count ?? 0}      bg="#E8F4EC" color="#2E7A4A" border="#B8DEC4"/>
+        <StatCard label="總收藏" value={stats.total_count ?? 0} accent="cream" icon={<Package2 className="h-4 w-4" />} />
+        <StatCard label="使用中" value={stats.in_use_count ?? 0} accent="blush" icon={<Sparkles className="h-4 w-4" />} />
+        <StatCard label="即將過期" value={stats.expiring_soon_count ?? 0} accent="amber" icon={<FlaskConical className="h-4 w-4" />} />
+        <StatCard label="已用完" value={stats.finished_count ?? 0} accent="sage" icon={<Plus className="h-4 w-4" />} />
       </div>
 
-      {/* Expiring soon */}
-      <section>
+      <section className="fini-section-panel">
         <div className="flex items-center justify-between mb-3">
           <h2 className="fini-section-title">即將過期</h2>
           <Link href="/products?filter=expiring" className="fini-section-link">查看全部 →</Link>
         </div>
 
         {products.length === 0 ? (
-          <div className="card p-8 text-center">
-            <p className="text-caption" style={{ color: '#9A7080' }}>
+          <div className="fini-empty-state">
+            <p className="text-caption" style={{ color: '#8D786B' }}>
               {(stats.total_count ?? 0) === 0
                 ? '尚未新增任何產品，點擊「新增產品」開始。'
                 : '目前沒有即將過期的產品，繼續保持！✨'}
@@ -115,13 +118,26 @@ export default async function DashboardPage() {
   );
 }
 
-function StatCard({ label, value, bg, color, border }: {
-  label: string; value: number; bg: string; color: string; border: string;
+function StatCard({ label, value, accent, icon }: {
+  label: string;
+  value: number;
+  accent: 'cream' | 'blush' | 'amber' | 'sage';
+  icon: React.ReactNode;
 }) {
+  const styles = {
+    cream: { bg: '#FBF4EA', border: '#E8DACA', color: '#8A6A52' },
+    blush: { bg: '#F8EEEC', border: '#E8D7D5', color: '#9A6B68' },
+    amber: { bg: '#FFF1E5', border: '#F0DCC3', color: '#B97840' },
+    sage: { bg: '#EEF3EA', border: '#D7E1D1', color: '#66806A' },
+  }[accent];
+
   return (
-    <div className="rounded-md p-4" style={{ background: bg, border: `0.5px solid ${border}` }}>
-      <div className="font-display leading-none mb-1" style={{ fontSize: 32, color, fontWeight: 500 }}>{value}</div>
-      <div className="text-micro" style={{ color, opacity: 0.75 }}>{label}</div>
+    <div className="fini-stat-card" style={{ background: styles.bg, borderColor: styles.border }}>
+      <div className="fini-stat-card-top" style={{ color: styles.color }}>
+        <span>{label}</span>
+        <span className="fini-stat-card-icon">{icon}</span>
+      </div>
+      <div className="font-display leading-none mb-1" style={{ fontSize: 36, color: styles.color, fontWeight: 500 }}>{value}</div>
     </div>
   );
 }
@@ -130,23 +146,23 @@ function ProductRow({ product }: { product: ProductWithExpiry }) {
   const status = getExpiryStatus(product.days_until_expiry);
   const statusColor = STATUS_COLORS[status];
   return (
-    <Link href={`/products/${product.id}`} className="card p-3 flex items-center gap-3 hover:shadow-float transition-shadow">
+    <Link href={`/products/${product.id}`} className="fini-product-row">
       {product.photo_url ? (
         <img src={product.photo_url} alt={product.name}
-          className="flex-shrink-0 rounded object-cover" style={{ width: 44, height: 44 }} />
+          className="flex-shrink-0 rounded-[18px] object-cover" style={{ width: 52, height: 52 }} />
       ) : (
-        <div className="flex-shrink-0 rounded flex items-center justify-center font-display"
-          style={{ width: 44, height: 44, background: product.category_color ?? '#E8E0E4', color: '#5A4050', fontSize: 18 }}>
+        <div className="flex-shrink-0 rounded-[18px] flex items-center justify-center font-display"
+          style={{ width: 52, height: 52, background: product.category_color ?? '#E8E0E4', color: '#5A4050', fontSize: 20 }}>
           {product.name.slice(0, 1)}
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <div className="text-body font-medium truncate" style={{ color: '#1A1218' }}>{product.name}</div>
-        <div className="text-micro truncate" style={{ color: '#9A7080' }}>
+        <div className="text-body font-medium truncate" style={{ color: '#2F2620' }}>{product.name}</div>
+        <div className="text-micro truncate" style={{ color: '#8D786B' }}>
           {product.brand ?? product.category_name ?? '—'}
         </div>
       </div>
-      <div className={`text-caption font-medium px-2.5 py-1 rounded flex-shrink-0 ${statusColor}`}>
+      <div className={`text-caption font-medium px-3 py-1.5 rounded-full flex-shrink-0 ${statusColor}`}>
         {formatDaysLabel(product.days_until_expiry)}
       </div>
     </Link>
