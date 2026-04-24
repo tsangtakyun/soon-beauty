@@ -1602,14 +1602,15 @@
 
 .fini-home {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.92fr);
-  gap: 36px;
+  grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1fr);
+  gap: 44px;
   align-items: center;
   padding: 52px 40px 28px;
 }
 
 .fini-home-copy {
   max-width: 620px;
+  justify-self: end;
 }
 
 .fini-logo-with-mark {
@@ -1661,6 +1662,30 @@
   margin-top: 30px;
 }
 
+.fini-home-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: #aa825f;
+  color: #fffdf9;
+  font-family: 'Noto Sans TC', -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  text-decoration: none;
+  box-shadow: 0 12px 24px rgba(170, 130, 95, 0.18);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.fini-home-primary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
 .fini-home-secondary {
   display: inline-flex;
   align-items: center;
@@ -1679,23 +1704,21 @@
 .fini-home-visual {
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 
 .fini-home-artboard {
   position: relative;
   width: 100%;
   min-height: 520px;
-  border-radius: 34px;
-  border: 1px solid #eadfd2;
-  background: linear-gradient(180deg, #fffefb 0%, #f8f2ea 100%);
-  box-shadow: 0 24px 60px rgba(126, 101, 79, 0.08);
+  background: transparent;
   overflow: hidden;
 }
 
 .fini-home-hero-image {
   object-fit: contain;
   object-position: center;
-  padding: 30px;
+  padding: 0;
 }
 
 .fini-home-features {
@@ -1750,6 +1773,10 @@
   .fini-home {
     grid-template-columns: 1fr;
     padding-top: 36px;
+  }
+
+  .fini-home-copy {
+    justify-self: start;
   }
 
   .fini-home-features {

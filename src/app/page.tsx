@@ -50,6 +50,19 @@ export default function HomePage() {
       </nav>
 
       <section className="fini-home">
+        <div className="fini-home-visual">
+          <div className="fini-home-artboard">
+            <Image
+              src="/brand/home-hero-art.png"
+              alt="Neaty Beauty 首頁主視覺插畫"
+              fill
+              sizes="(max-width: 900px) 100vw, 46vw"
+              className="fini-home-hero-image"
+              priority
+            />
+          </div>
+        </div>
+
         <div className="fini-home-copy">
           <p className="fini-home-kicker">安靜整理你的美容日常</p>
           <h1 className="fini-home-title">
@@ -63,25 +76,12 @@ export default function HomePage() {
           </p>
 
           <div className="fini-home-actions">
-            <Link className="fini-nav-cta" href="/login">
+            <Link className="fini-home-primary" href="/login">
               立即開始
             </Link>
             <a className="fini-home-secondary" href="#features">
               了解功能
             </a>
-          </div>
-        </div>
-
-        <div className="fini-home-visual">
-          <div className="fini-home-artboard">
-            <Image
-              src="/brand/home-hero-art.png"
-              alt="Neaty Beauty 首頁主視覺插畫"
-              fill
-              sizes="(max-width: 900px) 100vw, 46vw"
-              className="fini-home-hero-image"
-              priority
-            />
           </div>
         </div>
       </section>
