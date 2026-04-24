@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import {
   buildMakeupSharePrompt,
+  DEFAULT_MAKEUP_SHARE_TEMPLATE_ID,
   getMakeupShareOutputSize,
   type MakeupShareTemplate,
 } from '@/lib/recent-makeup-share';
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
       logId,
       selectedProducts,
     }: {
-      templateId: MakeupShareTemplate['id'];
+      templateId?: MakeupShareTemplate['id'];
       title?: string | null;
       notes?: string | null;
       selfieUrl?: string | null;
@@ -65,8 +66,10 @@ export async function POST(request: Request) {
       selectedProducts?: Array<Pick<Product, 'name' | 'brand'>>;
     } = body;
 
+    const finalTemplateId = templateId ?? DEFAULT_MAKEUP_SHARE_TEMPLATE_ID;
+
     const preview = buildMakeupSharePrompt({
-      templateId,
+      templateId: finalTemplateId,
       title: title ?? null,
       notes: notes ?? null,
       selfieUrl: selfieUrl ?? null,
@@ -85,7 +88,7 @@ export async function POST(request: Request) {
       const formData = new FormData();
       formData.append('model', model);
       formData.append('prompt', preview.prompt);
-      formData.append('size', getMakeupShareOutputSize(templateId));
+      formData.append('size', getMakeupShareOutputSize(finalTemplateId));
       formData.append('quality', 'medium');
       formData.append('image', selfieBlob, filename);
 
@@ -106,7 +109,7 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           model,
           prompt: preview.prompt,
-          size: getMakeupShareOutputSize(templateId),
+          size: getMakeupShareOutputSize(finalTemplateId),
           quality: 'medium',
         }),
       });
@@ -126,7 +129,7 @@ export async function POST(request: Request) {
     }
 
     const imageBuffer = Buffer.from(base64Image, 'base64');
-    const filePath = `${user.id}/makeup-shares/${Date.now()}-${templateId}.png`;
+    const filePath = `${user.id}/makeup-shares/${Date.now()}-${finalTemplateId}.png`;
 
     const { error: uploadError } = await supabase.storage.from('product-photos').upload(filePath, imageBuffer, {
       contentType: 'image/png',
@@ -145,7 +148,7 @@ export async function POST(request: Request) {
         .from('recent_makeup_logs')
         .update({
           share_image_url: imageUrl,
-          share_template_id: templateId,
+          share_template_id: finalTemplateId,
         })
         .eq('id', logId)
         .eq('user_id', user.id);

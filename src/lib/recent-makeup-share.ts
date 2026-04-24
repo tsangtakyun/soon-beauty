@@ -19,6 +19,8 @@ export type MakeupSharePromptInput = {
   selectedProducts: Array<Pick<Product, 'name' | 'brand'>>;
 };
 
+export const DEFAULT_MAKEUP_SHARE_TEMPLATE_ID: MakeupShareTemplate['id'] = 'annotated-breakdown';
+
 export const MAKEUP_SHARE_TEMPLATES: MakeupShareTemplate[] = [
   {
     id: 'product-catalog',
@@ -43,9 +45,13 @@ export const MAKEUP_SHARE_TEMPLATES: MakeupShareTemplate[] = [
 ];
 
 export function getMakeupShareTemplate(templateId: MakeupShareTemplate['id']) {
+  const defaultTemplate =
+    MAKEUP_SHARE_TEMPLATES.find((template) => template.id === DEFAULT_MAKEUP_SHARE_TEMPLATE_ID) ??
+    MAKEUP_SHARE_TEMPLATES[0];
+
   return (
     MAKEUP_SHARE_TEMPLATES.find((template) => template.id === templateId) ??
-    MAKEUP_SHARE_TEMPLATES[0]
+    defaultTemplate
   );
 }
 

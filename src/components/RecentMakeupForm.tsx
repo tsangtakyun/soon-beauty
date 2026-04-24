@@ -8,8 +8,8 @@ import { createClient } from '@/lib/supabase/client';
 import { compressImage } from '@/lib/image';
 import type { Category, Product, RecentMakeupLog } from '@/types/database';
 import {
-  MAKEUP_SHARE_TEMPLATES,
-  type MakeupShareTemplate,
+  DEFAULT_MAKEUP_SHARE_TEMPLATE_ID,
+  getMakeupShareTemplate,
 } from '@/lib/recent-makeup-share';
 
 type RecentMakeupFormProps = {
@@ -65,9 +65,6 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('collapsed');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState<MakeupShareTemplate['id']>(
-    MAKEUP_SHARE_TEMPLATES[0].id
-  );
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -89,6 +86,7 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
       };
     };
   } | null>(null);
+  const activeShareTemplate = getMakeupShareTemplate(DEFAULT_MAKEUP_SHARE_TEMPLATE_ID);
 
   const enrichedLogs = useMemo<LogPreview[]>(() => {
     return logs.map((log) => ({
@@ -218,7 +216,7 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          templateId: selectedTemplate,
+          templateId: DEFAULT_MAKEUP_SHARE_TEMPLATE_ID,
           title: title.trim() || null,
           notes: notes.trim() || null,
           selfieUrl: previewUrl,
@@ -254,7 +252,7 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          templateId: selectedTemplate,
+          templateId: DEFAULT_MAKEUP_SHARE_TEMPLATE_ID,
           title: title.trim() || null,
           notes: notes.trim() || null,
           selfieUrl: logs[0]?.selfie_url ?? null,
@@ -348,7 +346,7 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
               <p className="fini-section-kicker">AI 妝容封面</p>
               <h2 className="fini-section-title">生成今日妝容雜誌圖</h2>
               <p className="fini-dash-sub mt-2">
-                以自拍、妝容標題與已選產品，整理成可分享的美容雜誌風封面。
+                以自拍、妝容標題與已選產品，直接整理成可分享的旁註解析版妝容圖。
               </p>
               <div className="fini-makeup-premium-hero-actions">
                 <button
@@ -379,13 +377,13 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
                 </button>
               </div>
               <p className="fini-makeup-premium-hero-note">
-                先用兩款主模板測試順暢度，再慢慢收斂最終美術方向。
+                目前固定使用「旁註解析版」，先將生成效果與閱讀感打磨好。
               </p>
             </div>
             <div className="fini-makeup-demo-card" aria-hidden="true">
               <span className="fini-makeup-demo-kicker">AI DEMO</span>
-              <strong>Today&apos;s Makeup</strong>
-              <p>產品清單版 · 旁註解析版 · 自拍主視覺</p>
+              <strong>{activeShareTemplate.name}</strong>
+              <p>{activeShareTemplate.tagline}</p>
             </div>
           </section>
 
@@ -515,34 +513,18 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
       <section className="fini-section-panel">
         <div className="fini-makeup-premium-head">
           <div>
-            <p className="fini-section-kicker">模板預覽</p>
-            <h2 className="fini-section-title">分享圖主模板</h2>
-            <p className="fini-dash-sub mt-2">
-              先集中兩款主模板：一款清楚列出產品，一款標示妝容重點。
-            </p>
+            <p className="fini-section-kicker">生成方向</p>
+            <h2 className="fini-section-title">{activeShareTemplate.name}</h2>
+            <p className="fini-dash-sub mt-2">{activeShareTemplate.description}</p>
           </div>
           <span className="fini-premium-badge">
             <Sparkles className="w-4 h-4" />
-            兩款主模板
+            固定套用
           </span>
         </div>
 
-        <div className="fini-makeup-template-grid">
-          {MAKEUP_SHARE_TEMPLATES.map((template) => (
-            <button
-              key={template.id}
-              type="button"
-              className={`fini-makeup-template-card ${selectedTemplate === template.id ? 'is-active' : ''}`}
-              onClick={() => setSelectedTemplate(template.id)}
-            >
-              <span className="fini-makeup-template-name">{template.name}</span>
-              <span className="fini-makeup-template-body">{template.description}</span>
-            </button>
-          ))}
-        </div>
-
         <div className="fini-makeup-premium-note">
-          <p>目前先專心測試這兩款版型，之後再微調字體、版面與生成效果。</p>
+          <p>用家按下 AI 生成後，會直接以旁註解析版輸出，暫時不再提供其他模板選擇。</p>
         </div>
 
         {sharePreviewError && <div className="fini-login-error">{sharePreviewError}</div>}
