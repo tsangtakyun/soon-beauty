@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import {
   buildMakeupSharePrompt,
-  canUsePremiumShare,
   getMakeupShareOutputSize,
   type MakeupShareTemplate,
 } from '@/lib/recent-makeup-share';
@@ -59,19 +58,6 @@ export async function POST(request: Request) {
       logId?: string | null;
       selectedProducts?: Array<Pick<Product, 'name' | 'brand'>>;
     } = body;
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('tier')
-      .eq('id', user.id)
-      .single();
-
-    if (!canUsePremiumShare(profile)) {
-      return NextResponse.json(
-        { error: '此功能目前僅限 Premium 方案使用。', currentTier: profile?.tier ?? 'free' },
-        { status: 403 }
-      );
-    }
 
     const preview = buildMakeupSharePrompt({
       templateId,
