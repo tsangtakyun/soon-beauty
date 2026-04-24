@@ -20,6 +20,12 @@ function base64ImageToBlob(base64: string, mediaType: string) {
   return new Blob([imageBuffer], { type: mediaType });
 }
 
+function getUploadFilename(mediaType?: string) {
+  if (mediaType === 'image/png') return 'selfie.png';
+  if (mediaType === 'image/webp') return 'selfie.webp';
+  return 'selfie.jpg';
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -71,15 +77,17 @@ export async function POST(request: Request) {
     let openAiResponse: Response;
 
     if (base64 || selfieUrl) {
+      const blobMediaType = mediaType || 'image/jpeg';
       const selfieBlob = base64
-        ? base64ImageToBlob(base64, mediaType || 'image/jpeg')
+        ? base64ImageToBlob(base64, blobMediaType)
         : await fetchPublicImageAsBlob(selfieUrl!);
+      const filename = getUploadFilename(selfieBlob.type || blobMediaType);
       const formData = new FormData();
       formData.append('model', model);
       formData.append('prompt', preview.prompt);
       formData.append('size', getMakeupShareOutputSize(templateId));
       formData.append('quality', 'medium');
-      formData.append('image[]', selfieBlob, 'selfie.png');
+      formData.append('image', selfieBlob, filename);
 
       openAiResponse = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
