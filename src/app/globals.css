@@ -302,6 +302,148 @@
   white-space: nowrap;
 }
 
+/* ════════════════════════════════════════
+   SKIN TONE REPORT
+════════════════════════════════════════ */
+
+.tone-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(232, 217, 221, 0.9);
+  border-radius: 36px;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(112, 82, 91, 0.08);
+}
+
+.tone-panel {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #ede1e2;
+  border-radius: 32px;
+  box-shadow: 0 16px 50px rgba(112, 82, 91, 0.06);
+}
+
+.tone-panel-soft {
+  background:
+    radial-gradient(circle at top right, rgba(247, 226, 213, 0.65) 0%, rgba(247, 226, 213, 0) 34%),
+    linear-gradient(180deg, #fffdfa 0%, #fff7f8 100%);
+}
+
+.tone-display {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  line-height: 0.96;
+  font-weight: 500;
+  color: #1a1218;
+}
+
+.tone-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  line-height: 1.02;
+  font-weight: 500;
+  color: #1a1218;
+}
+
+.tone-body {
+  color: #715960;
+  font-size: 0.98rem;
+  line-height: 1.85;
+}
+
+.tone-kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #9a727d;
+}
+
+.tone-mini-card {
+  border: 1px solid #eee2e3;
+  border-radius: 28px;
+  padding: 18px 18px 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 248, 249, 0.96) 100%);
+}
+
+.tone-mini-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7e9ed;
+  color: #b06070;
+  margin-bottom: 12px;
+}
+
+.tone-progress-ring {
+  width: 68px;
+  height: 68px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at center, #fff 42%, transparent 43%),
+    conic-gradient(#b06070 0deg, #dd9269 220deg, #f1dde2 220deg, #f1dde2 360deg);
+  color: #7a5a63;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.tone-upload-option {
+  min-height: 170px;
+  border-radius: 26px;
+  border: 1px solid #e7d9dc;
+  background:
+    linear-gradient(180deg, #fffefe 0%, #fff8fa 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #b06070;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.tone-upload-option:hover {
+  transform: translateY(-1px);
+  border-color: #d7b0ba;
+  box-shadow: 0 14px 28px rgba(176, 96, 112, 0.08);
+}
+
+.tone-result-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 40px;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 24px 60px rgba(122, 96, 104, 0.12);
+}
+
+@media (max-width: 640px) {
+  .tone-hero,
+  .tone-result-hero {
+    padding: 22px;
+    border-radius: 28px;
+  }
+
+  .tone-panel {
+    border-radius: 26px;
+  }
+
+  .tone-progress-ring {
+    width: 58px;
+    height: 58px;
+    font-size: 0.76rem;
+  }
+
+  .tone-upload-option {
+    min-height: 132px;
+  }
+}
+
 /* Feature strip */
 .fini-strip {
   display: grid;

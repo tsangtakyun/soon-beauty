@@ -12,6 +12,7 @@ export type Database = {
           locale: string;
           tier: 'free' | 'pro' | 'pro_plus';
           item_limit: number;
+          color_profile: ColorProfile | null;
           created_at: string;
           updated_at: string;
         };
@@ -22,6 +23,7 @@ export type Database = {
           locale?: string;
           tier?: 'free' | 'pro' | 'pro_plus';
           item_limit?: number;
+          color_profile?: ColorProfile | null;
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
       };
@@ -127,6 +129,24 @@ export type Database = {
       };
     };
   };
+};
+
+export type SuitableShades = {
+  lip: string[];
+  blush: string[];
+  eyeshadow: string[];
+  foundation: string[];
+};
+
+export type ColorProfile = {
+  season: 'spring' | 'summer' | 'autumn' | 'winter';
+  warm_cool: 'warm' | 'cool' | 'neutral';
+  skin_depth: 'fair' | 'light' | 'medium' | 'tan' | 'deep';
+  undertone: 'yellow' | 'pink' | 'olive' | 'neutral';
+  suitable_shades: SuitableShades;
+  avoid_shades: string[];
+  season_description: string;
+  analysed_at?: string;
 };
 
 export type Product = Database['public']['Tables']['products']['Row'];
