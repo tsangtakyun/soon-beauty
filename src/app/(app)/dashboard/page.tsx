@@ -87,7 +87,7 @@ export default async function DashboardPage() {
           <h1 className="fini-dash-title">個人首頁</h1>
           <p className="fini-dash-sub">
             {profile?.display_name ? `${profile.display_name}，` : ''}
-            呢度會幫你睇住產品狀態、鐵皮進度，同埋最近妝容記錄。
+            這裡會為你整理產品狀態、鐵皮進度與近期妝容記錄。
           </p>
         </div>
       </section>
