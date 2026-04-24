@@ -56,7 +56,7 @@ export default function LoginPage() {
 
         {/* Logo */}
         <Link href="/" className="fini-login-logo">
-          FINI <sup>®</sup>
+          Soon Beauty <span>paw</span>
         </Link>
 
         <div className="fini-login-form-wrap">
@@ -67,8 +67,8 @@ export default function LoginPage() {
             </h1>
             <p className="fini-login-sub">
               {mode === 'login'
-                ? '登入以查看您的美容倉庫'
-                : '免費開始，支援 100 件產品'}
+                ? '登入你嘅 gentle beauty space'
+                : '開始建立你嘅美容收藏與色彩檔案'}
             </p>
           </div>
 
@@ -157,7 +157,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="fini-login-footer">by SOON · © 2026 Fini</p>
+        <p className="fini-login-footer">Soon Beauty · soft / warm / natural</p>
       </div>
 
       {/* Right — image */}
@@ -172,7 +172,7 @@ export default function LoginPage() {
         {/* Overlay quote */}
         <div className="fini-login-quote">
           <p className="fini-login-quote-text">
-            每一支，都值得用完。
+            Take time to make your soul happy.
           </p>
         </div>
       </div>

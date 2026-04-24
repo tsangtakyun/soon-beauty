@@ -1,135 +1,212 @@
-import Link from 'next/link';
 import Image from 'next/image';
+import Link from 'next/link';
+import {
+  BookHeart,
+  Droplets,
+  Heart,
+  NotebookPen,
+  PawPrint,
+  ScanSearch,
+  Sparkles,
+} from 'lucide-react';
+
+const features = [
+  {
+    icon: <ScanSearch className="h-4 w-4" />,
+    title: 'Discover',
+    description: '拍照整理產品、辨識成分，慢慢建立你嘅美容收藏。',
+  },
+  {
+    icon: <Droplets className="h-4 w-4" />,
+    title: 'Skincare',
+    description: '記錄開封、PAO、到期時間，同 routine 排得更清楚。',
+  },
+  {
+    icon: <Heart className="h-4 w-4" />,
+    title: 'Favorite',
+    description: '收藏最啱你膚況同色彩方向嘅選擇，唔再亂買。',
+  },
+];
+
+const previewCards = [
+  {
+    title: 'Skincare Shelf',
+    body: '將 toner、serum、cream 分層整理，保留你最常用嗰幾支。',
+    tone: 'cream',
+  },
+  {
+    title: 'Color Story',
+    body: '把個人色彩分析變成可視化色板，揀妝更順手。',
+    tone: 'rose',
+  },
+  {
+    title: 'Routine Notes',
+    body: '早晚步驟、用後感、回購想法都放返入同一個空間。',
+    tone: 'sage',
+  },
+];
 
 export default function HomePage() {
   return (
     <main className="fini-page">
-
-      {/* Nav */}
       <nav className="fini-nav">
-        <div className="fini-logo">FINI <sup>®</sup></div>
+        <Link href="/" className="fini-logo">
+          Soon Beauty <span>paw</span>
+        </Link>
         <div className="fini-nav-links">
+          <Link href="#moodboard" className="fini-nav-link">風格</Link>
           <Link href="#features" className="fini-nav-link">功能</Link>
-          <Link href="/login" className="fini-nav-cta">免費開始</Link>
+          <Link href="/login" className="fini-nav-cta">開始整理</Link>
         </div>
       </nav>
 
-      {/* Hero */}
       <section className="fini-hero">
-
-        {/* Left — copy */}
         <div className="fini-hero-left">
           <div className="fini-eyebrow">
-            <span className="fini-eyebrow-dot" />
-            你的 AI 美容管家
+            <PawPrint className="h-3.5 w-3.5" />
+            Gentle, warm, and beautifully organized
           </div>
 
-          {/* Lama speech bubble */}
-          <div className="fini-lama-bubble">
-            <p>我係 Lama！已經幫你整理好你的化妝品啦～ 有幾支快過期，快啲用呀！</p>
-          </div>
+          <div className="fini-script-note">A gentle space for you to discover your beauty.</div>
 
           <h1 className="fini-headline">
-            讓 Lama 幫你<br />
-            <em>管好每一支</em>
+            Find the best skincare
+            <br />
+            for your <em>beautiful self.</em>
           </h1>
 
           <p className="fini-subline">
-            拍照即記錄，AI 追蹤開封日、到期日、成份衝突。<br />
-            不再囤積，不再浪費。
+            Soon Beauty 將護膚管理、色彩分析同日常筆記放入同一個柔和空間。
+            唔再係冷冰冰嘅 dashboard，而係一個你真係想每日打開嘅 beauty home。
           </p>
 
           <div className="fini-cta-row">
-            <Link href="/login" className="fini-btn-main">免費開始使用</Link>
-            <Link href="#features" className="fini-btn-out">了解更多</Link>
+            <Link href="/login" className="fini-btn-main">Explore Now</Link>
+            <Link href="#features" className="fini-btn-out">See The Mood</Link>
           </div>
-          <p className="fini-quota">免費版支援 100 件產品</p>
+
+          <div className="fini-feature-icons">
+            {features.map((feature) => (
+              <div key={feature.title} className="fini-feature-icon-card">
+                <div className="fini-feature-icon">{feature.icon}</div>
+                <div className="fini-feature-copy">
+                  <div className="fini-feature-copy-title">{feature.title}</div>
+                  <div className="fini-feature-copy-desc">{feature.description}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Right — Lama */}
-        <div className="fini-hero-right fini-lama-bg">
-          <div className="fini-lama-wrap">
+        <div className="fini-hero-right">
+          <div className="fini-hero-illustration">
+            <div className="fini-hero-shelf" />
+            <div className="fini-hero-props">
+              <span className="fini-bottle fini-bottle-tall" />
+              <span className="fini-bottle fini-bottle-jar" />
+              <span className="fini-bottle fini-bottle-drop" />
+            </div>
+            <div className="fini-paw-trail">
+              <span />
+              <span />
+              <span />
+            </div>
             <Image
               src="/lama.svg"
-              alt="Lama — Fini的貓咪美容管家"
-              width={300}
-              height={395}
+              alt="Soon Beauty 的品牌貓咪角色"
+              width={360}
+              height={420}
+              className="fini-hero-mascot"
               priority
             />
           </div>
 
-          {/* Floating product card */}
           <div className="fini-product-card">
             <div className="fini-card-swatch">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 3v10M3 8h10" stroke="#FDF8F6" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
+              <Sparkles className="h-4 w-4" />
             </div>
             <div className="fini-card-info">
-              <p className="fini-card-name">Laneige 水光精華</p>
-              <p className="fini-card-meta">開封 2024.09 · PAO 12M</p>
+              <p className="fini-card-name">Glow Serum</p>
+              <p className="fini-card-meta">Hydrate · Brighten · Morning routine</p>
             </div>
-            <div className="fini-card-pill">還剩 5 個月</div>
+            <div className="fini-card-pill">Soft pick</div>
           </div>
         </div>
       </section>
 
-      {/* Feature strip */}
-      <div id="features" className="fini-strip">
+      <section id="moodboard" className="fini-moodboard">
+        <div className="fini-moodboard-card fini-brand-panel">
+          <div>
+            <p className="fini-section-kicker">Brand Mood</p>
+            <h2 className="fini-section-title-lg">White + wood + hand-drawn cat</h2>
+            <p className="fini-section-body">
+              呢個方向會成為整個產品嘅新語言：柔和留白、奶油底、木色點綴、像紙本手帳一樣可親。
+            </p>
+          </div>
+
+          <div className="fini-palette-row">
+            {['#FFFDF9', '#F7F3EC', '#EDE2D2', '#C8A98A', '#8A6A52', '#3A2F28'].map((color) => (
+              <div key={color} className="fini-palette-swatch">
+                <span style={{ background: color }} />
+                <small>{color}</small>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="fini-moodboard-card fini-preview-grid">
+          {previewCards.map((card) => (
+            <div key={card.title} className={`fini-preview-card fini-preview-${card.tone}`}>
+              <div className="fini-preview-ornament" />
+              <div className="fini-preview-title">{card.title}</div>
+              <p className="fini-preview-body">{card.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="features" className="fini-strip">
         <FeatureItem
-          title="精準倒數"
-          desc="PAO 自動計算實際到期日"
-          icon={
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <circle cx="7" cy="7" r="5.5" stroke="#B06070" strokeWidth="1"/>
-              <path d="M7 4.5V7.5l1.5 1.5" stroke="#B06070" strokeWidth="1" strokeLinecap="round"/>
-            </svg>
-          }
+          title="Beauty Library"
+          desc="產品清單、分類與空瓶紀錄會變成一個溫柔又清楚嘅收藏櫃。"
+          icon={<BookHeart className="h-4 w-4" />}
         />
         <FeatureItem
-          title="庫存總覽"
-          desc="三大類整理，外出前一覽"
-          icon={
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect x="1.5" y="2.5" width="11" height="9" rx="1.5" stroke="#B06070" strokeWidth="1"/>
-              <path d="M4 7h6M4 9h4" stroke="#B06070" strokeWidth="0.8" strokeLinecap="round"/>
-            </svg>
-          }
+          title="Color Report"
+          desc="膚色分析會以雜誌式報告呈現，而唔係一堆冷資料。"
+          icon={<Sparkles className="h-4 w-4" />}
         />
         <FeatureItem
-          title="成份分析"
-          desc="AI 檢查相容性，助您決策"
-          icon={
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 2C4.8 2 3 3.8 3 6c0 2.4 4 7 4 7s4-4.6 4-7c0-2.2-1.8-4-4-4z" stroke="#B06070" strokeWidth="1"/>
-              <circle cx="7" cy="6" r="1.2" stroke="#B06070" strokeWidth="0.8"/>
-            </svg>
-          }
+          title="Routine Flow"
+          desc="早晚護膚步驟、使用節奏同提醒，會更似手帳而唔係表格。"
+          icon={<Droplets className="h-4 w-4" />}
         />
         <FeatureItem
-          title="鐵皮計劃"
-          desc="記錄每一支用完的成就"
-          icon={
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 2l1.5 3 3.5.5-2.5 2.5.5 3.5L7 10l-3 1.5.5-3.5L2 5.5 5.5 5Z" stroke="#B06070" strokeWidth="1" strokeLinejoin="round"/>
-            </svg>
-          }
+          title="Notes & Favorites"
+          desc="將回購、心得同最愛色系放返同一個空間，建立你自己嘅美容語言。"
+          icon={<NotebookPen className="h-4 w-4" />}
           last
         />
-      </div>
+      </section>
 
-      {/* Footer */}
       <footer className="fini-footer">
-        <p className="fini-footer-by">by <span>SOON</span></p>
-        <p className="fini-footer-by">© 2026 Fini · Lama 的美容倉庫</p>
+        <p className="fini-footer-by">Soon Beauty · soft / warm / natural / simple</p>
+        <p className="fini-footer-by">© 2026 · your beauty, gently organized</p>
       </footer>
-
     </main>
   );
 }
 
-function FeatureItem({ title, desc, icon, last = false }: {
-  title: string; desc: string; icon: React.ReactNode; last?: boolean;
+function FeatureItem({
+  title,
+  desc,
+  icon,
+  last = false,
+}: {
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+  last?: boolean;
 }) {
   return (
     <div className={`fini-feat${last ? ' fini-feat-last' : ''}`}>
