@@ -153,17 +153,17 @@ export default function ScanProductForm({ categories }: { categories: Category[]
         <Link href="/products" className="inline-flex items-center gap-1 text-caption text-ink-500 hover:text-ink-800">
           <ArrowLeft className="w-4 h-4" />返回
         </Link>
-        <div className="card p-6 space-y-5">
+        <div className="fini-page-hero" style={{ gridTemplateColumns: '1fr' }}>
           <div className="w-12 h-12 rounded" style={{ background: '#F0E4E8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Sparkles className="w-6 h-6" style={{ color: '#B06070' }} />
+            <Sparkles className="w-6 h-6" style={{ color: '#8A6A52' }} />
           </div>
           <div>
             <h1 className="fini-dash-title" style={{ fontSize: 24 }}>拍照新增產品</h1>
-            <p className="text-caption text-ink-600 leading-relaxed mt-1">
-              AI 自動識別產品資訊、推算過期日子，同時分析成份。
+            <p className="text-caption leading-relaxed mt-1" style={{ color: '#7A6656' }}>
+              用相機幫你快速帶入產品資訊、成分分析同到期推算，再慢慢確認細節。
             </p>
           </div>
-          <div className="rounded-md p-4 text-caption space-y-1" style={{ background: '#F5F0F2', color: '#7A6068' }}>
+          <div className="rounded-[24px] p-4 text-caption space-y-1" style={{ background: '#F8F1E8', color: '#7A6656', border: '1px solid #E9DED0' }}>
             <div className="font-medium mb-2" style={{ color: '#1A1218' }}>📸 拍攝技巧</div>
             <div>· 正面：清楚拍到產品名同品牌</div>
             <div>· 底部：包含批號同任何日期標示</div>
@@ -182,12 +182,12 @@ export default function ScanProductForm({ categories }: { categories: Category[]
 
   if (stage === 'analyzing') {
     return (
-      <div className="max-w-lg mx-auto pt-20 text-center space-y-4 animate-fade-in">
+      <div className="max-w-lg mx-auto pt-20 text-center space-y-4 animate-fade-in fini-section-panel">
         <div className="inline-block animate-spin">
-          <Sparkles className="w-10 h-10" style={{ color: '#B06070' }} />
+          <Sparkles className="w-10 h-10" style={{ color: '#8A6A52' }} />
         </div>
         <h2 className="fini-dash-title" style={{ fontSize: 22 }}>識別 + 分析成份中...</h2>
-        <p className="text-caption text-ink-500">AI 同時識別產品資訊及分析成份，約需 15–25 秒</p>
+        <p className="text-caption" style={{ color: '#8D786B' }}>AI 同時識別產品資訊及分析成份，約需 15–25 秒</p>
       </div>
     );
   }
@@ -195,7 +195,7 @@ export default function ScanProductForm({ categories }: { categories: Category[]
   if (stage === 'error') {
     return (
       <div className="max-w-lg mx-auto space-y-5 animate-fade-in">
-        <div className="card p-6 text-center space-y-4">
+        <div className="fini-section-panel p-6 text-center space-y-4">
           <AlertCircle className="w-10 h-10 mx-auto" style={{ color: '#C04040' }} />
           <div>
             <h2 className="fini-dash-title" style={{ fontSize: 20 }}>識別失敗</h2>
@@ -221,11 +221,11 @@ export default function ScanProductForm({ categories }: { categories: Category[]
 
     return (
       <div className="max-w-lg mx-auto space-y-4 animate-fade-in">
-        <div className="card p-5 space-y-4">
+        <div className="fini-section-panel p-5 space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5" style={{ color: '#B06070' }} />
+              <Sparkles className="w-5 h-5" style={{ color: '#8A6A52' }} />
               <span className="fini-section-title">識別結果</span>
             </div>
             <div className="flex items-center gap-2">
@@ -235,11 +235,11 @@ export default function ScanProductForm({ categories }: { categories: Category[]
             </div>
           </div>
 
-          {photoUrl && <img src={photoUrl} alt="產品" className="w-full h-36 object-cover rounded-md" />}
+          {photoUrl && <img src={photoUrl} alt="產品" className="w-full h-40 object-cover rounded-[24px]" />}
 
           {/* Expiry warning */}
           {ocrResult.expiry_warning && (
-            <div className="flex items-start gap-2 p-3 rounded-md" style={{ background: '#FDF0E8', border: '0.5px solid #F0D4B8' }}>
+            <div className="flex items-start gap-2 p-3 rounded-[20px]" style={{ background: '#FDF0E8', border: '0.5px solid #F0D4B8' }}>
               <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#C06030' }} />
               <p className="text-caption" style={{ color: '#C06030' }}>
                 推算出嚟嘅過期日子係過去，可能讀取有誤，請手動核實
@@ -248,7 +248,7 @@ export default function ScanProductForm({ categories }: { categories: Category[]
           )}
 
           {hasNothing ? (
-            <div className="p-4 rounded-md text-caption" style={{ background: '#FDF0E8', color: '#C06030' }}>
+            <div className="p-4 rounded-[20px] text-caption" style={{ background: '#FDF0E8', color: '#C06030' }}>
               未能識別任何資訊，相片可能過於模糊。
             </div>
           ) : (
@@ -344,7 +344,7 @@ export default function ScanProductForm({ categories }: { categories: Category[]
           <div className="space-y-2 pt-1">
             {!hasNothing && ocrResult.name && (
               <button onClick={quickSave} disabled={quickSaving || quickSaved} className="btn-primary w-full"
-                style={{ background: quickSaved ? '#2E7A4A' : undefined }}>
+                style={{ background: quickSaved ? '#66806A' : undefined }}>
                 <Save className="w-4 h-4 mr-2" />
                 {quickSaved ? '已加入產品庫 ✓' : quickSaving ? '加入中...' : '直接加入我的產品'}
               </button>
@@ -380,17 +380,17 @@ export default function ScanProductForm({ categories }: { categories: Category[]
         </button>
         <div>
           <h1 className="fini-dash-title" style={{ fontSize: 22 }}>確認產品資訊</h1>
-          <p className="text-caption text-ink-500 mt-1">
+          <p className="text-caption mt-1" style={{ color: '#8D786B' }}>
             {ocrResult ? '識別結果已填入，請確認後儲存' : '請手動輸入產品資訊'}
           </p>
         </div>
         {photoUrl && (
-          <div className="flex items-center gap-3 p-3 rounded-md" style={{ background: '#F5F0F2' }}>
-            <img src={photoUrl} alt="產品" className="rounded object-cover flex-shrink-0" style={{ width: 48, height: 48 }} />
-            <span className="text-caption" style={{ color: '#7A6068' }}>✅ 產品相片已儲存</span>
+          <div className="flex items-center gap-3 p-3 rounded-[22px]" style={{ background: '#F8F1E8', border: '1px solid #E9DED0' }}>
+            <img src={photoUrl} alt="產品" className="rounded-[16px] object-cover flex-shrink-0" style={{ width: 48, height: 48 }} />
+            <span className="text-caption" style={{ color: '#7A6656' }}>✅ 產品相片已儲存</span>
           </div>
         )}
-        <div className="card p-5">
+        <div className="fini-section-panel p-5">
           <ProductForm categories={categories} mode="create" initial={initial} />
         </div>
       </div>

@@ -312,23 +312,23 @@
 .tone-hero {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(232, 217, 221, 0.9);
+  border: 1px solid rgba(232, 217, 201, 0.9);
   border-radius: 36px;
   padding: 28px;
-  box-shadow: 0 20px 60px rgba(112, 82, 91, 0.08);
+  box-shadow: 0 20px 60px rgba(126, 101, 79, 0.08);
 }
 
 .tone-panel {
   background: rgba(255, 255, 255, 0.96);
-  border: 1px solid #ede1e2;
+  border: 1px solid #eadfd2;
   border-radius: 32px;
-  box-shadow: 0 16px 50px rgba(112, 82, 91, 0.06);
+  box-shadow: 0 16px 50px rgba(126, 101, 79, 0.06);
 }
 
 .tone-panel-soft {
   background:
     radial-gradient(circle at top right, rgba(247, 226, 213, 0.65) 0%, rgba(247, 226, 213, 0) 34%),
-    linear-gradient(180deg, #fffdfa 0%, #fff7f8 100%);
+    linear-gradient(180deg, #fffdfa 0%, #fbf5ed 100%);
 }
 
 .tone-display {
@@ -348,7 +348,7 @@
 }
 
 .tone-body {
-  color: #715960;
+  color: #715f53;
   font-size: 0.98rem;
   line-height: 1.85;
 }
@@ -357,15 +357,15 @@
   font-size: 0.72rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: #9a727d;
+  color: #9b816b;
 }
 
 .tone-mini-card {
-  border: 1px solid #eee2e3;
+  border: 1px solid #eee2d9;
   border-radius: 28px;
   padding: 18px 18px 16px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 248, 249, 0.96) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 249, 243, 0.96) 100%);
 }
 
 .tone-mini-icon {
@@ -375,8 +375,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #f7e9ed;
-  color: #b06070;
+  background: #f2e6da;
+  color: #8a6a52;
   margin-bottom: 12px;
 }
 
@@ -389,8 +389,8 @@
   justify-content: center;
   background:
     radial-gradient(circle at center, #fff 42%, transparent 43%),
-    conic-gradient(#b06070 0deg, #dd9269 220deg, #f1dde2 220deg, #f1dde2 360deg);
-  color: #7a5a63;
+    conic-gradient(#8a6a52 0deg, #c29569 220deg, #efe2d4 220deg, #efe2d4 360deg);
+  color: #7a6656;
   font-size: 0.82rem;
   font-weight: 600;
 }
@@ -398,22 +398,22 @@
 .tone-upload-option {
   min-height: 170px;
   border-radius: 26px;
-  border: 1px solid #e7d9dc;
+  border: 1px solid #e7dccf;
   background:
-    linear-gradient(180deg, #fffefe 0%, #fff8fa 100%);
+    linear-gradient(180deg, #fffefe 0%, #fff8f1 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #b06070;
+  color: #8a6a52;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .tone-upload-option:hover {
   transform: translateY(-1px);
-  border-color: #d7b0ba;
-  box-shadow: 0 14px 28px rgba(176, 96, 112, 0.08);
+  border-color: #d5c0aa;
+  box-shadow: 0 14px 28px rgba(138, 106, 82, 0.08);
 }
 
 .tone-result-hero {
@@ -422,7 +422,7 @@
   border-radius: 40px;
   padding: 28px;
   border: 1px solid rgba(255, 255, 255, 0.45);
-  box-shadow: 0 24px 60px rgba(122, 96, 104, 0.12);
+  box-shadow: 0 24px 60px rgba(126, 101, 79, 0.12);
 }
 
 @media (max-width: 640px) {

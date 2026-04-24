@@ -70,7 +70,7 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
   async function generateReport() {
     setGeneratingReport(true);
     setReportHtml(null);
-    const prompt = `你係Lama，Fini app嘅貓咪美容管家。幫用家生成一個「${monthLabel}鐵皮報告」HTML卡片。
+    const prompt = `你係 Neaty Beauty 嘅貓咪美容管家。幫用家生成一個「${monthLabel}鐵皮報告」HTML卡片。
 
 數據：
 - 本月用完：${thisMonth.length} 件
@@ -81,7 +81,7 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
 - 只return純HTML（唔好markdown唔好code fence）
 - 固定寬度480px，可以截圖分享
 - 背景 #FAFAF8，深色文字 #1A1218，玫瑰 #B06070，字體用system-ui sans-serif
-- 頂部「FINI ®」logo（letter-spacing 0.15em）同「${monthLabel} 鐵皮報告」副標題
+- 頂部「Neaty Beauty」logo（letter-spacing 0.08em）同「${monthLabel} 鐵皮報告」副標題
 - 中間大數字顯示用完件數，Lama說一句廣東話鼓勵（親切有趣，例如：「好叻呀！又用完X支，繼續加油呀～ 🐱」）
 - 底部列出本月鐵皮清單（每行一件，細字）
 - 整體padding 32px，設計簡潔靚靚，border 0.5px solid #E0D4D8`;
@@ -110,23 +110,23 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
     <div className="space-y-4">
 
       {/* Watchlist card */}
-      <div className="card overflow-hidden">
-        <div className="flex items-center justify-between p-4" style={{ borderBottom: '0.5px solid #E0D4D8' }}>
+      <div className="fini-section-panel overflow-hidden">
+        <div className="flex items-center justify-between p-4" style={{ borderBottom: '0.5px solid #E8DDCF' }}>
           <div>
             <div className="flex items-center gap-2">
-              <span style={{ fontSize: 15, fontWeight: 500, color: '#1A1218' }}>鐵皮清單</span>
+              <span style={{ fontSize: 15, fontWeight: 500, color: '#2F2620' }}>鐵皮清單</span>
               <span className="text-micro px-1.5 py-0.5 rounded-full"
-                style={{ background: '#F0E4E8', color: '#9A7080' }}>
+                style={{ background: '#F3E7DA', color: '#8A6A52' }}>
                 {watchlist.length}/{MAX_WATCHLIST}
               </span>
             </div>
-            <p className="text-micro mt-0.5" style={{ color: '#9A7080' }}>追蹤我想用完嘅產品</p>
+            <p className="text-micro mt-0.5" style={{ color: '#8D786B' }}>追蹤我想用完嘅產品</p>
           </div>
           {watchlist.length < MAX_WATCHLIST && (
             <button
               onClick={() => { setShowPicker(true); setSearch(''); }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption"
-              style={{ background: '#F0E4E8', color: '#7A5060' }}
+              style={{ background: '#F3E7DA', color: '#7A5E47' }}
             >
               <Plus style={{ width: 13, height: 13 }} />加入
             </button>
@@ -135,7 +135,7 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
 
         {watchlist.length === 0 ? (
           <div className="p-6 text-center">
-            <p className="text-caption" style={{ color: '#B09898' }}>
+            <p className="text-caption" style={{ color: '#9D8777' }}>
               撳「加入」揀最多 {MAX_WATCHLIST} 件想用完嘅產品
             </p>
           </div>
@@ -143,25 +143,25 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
           <div>
             {watchlist.map((p) => (
               <div key={p.id} className="flex items-center gap-3 p-3"
-                style={{ borderBottom: '0.5px solid #F5EEF0' }}>
+                style={{ borderBottom: '0.5px solid #F1E8DE' }}>
                 {p.photo_url ? (
                   <img src={p.photo_url} alt={p.name} className="rounded object-cover flex-shrink-0"
-                    style={{ width: 40, height: 40 }} />
+                    style={{ width: 44, height: 44, borderRadius: 18 }} />
                 ) : (
                   <div className="rounded flex-shrink-0 flex items-center justify-center"
-                    style={{ width: 40, height: 40, background: '#E8E0E4', color: '#5A4050',
+                    style={{ width: 44, height: 44, background: '#E8E0E4', color: '#5A4050',
                       fontSize: 16, fontFamily: "'Cormorant Garamond', serif" }}>
                     {p.name.slice(0, 1)}
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-caption font-medium truncate" style={{ color: '#1A1218' }}>{p.name}</div>
-                  <div className="text-micro" style={{ color: '#9A7080' }}>{p.brand ?? '—'}</div>
+                  <div className="text-caption font-medium truncate" style={{ color: '#2F2620' }}>{p.name}</div>
+                  <div className="text-micro" style={{ color: '#8D786B' }}>{p.brand ?? '—'}</div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button onClick={() => markFinished(p)} disabled={marking === p.id}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro"
-                    style={{ background: '#E8F4EC', color: '#2E7A4A' }}>
+                    style={{ background: '#EEF3EA', color: '#66806A' }}>
                     <Check style={{ width: 11, height: 11 }} />
                     {marking === p.id ? '標記中...' : '用完了'}
                   </button>
@@ -182,23 +182,23 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
           style={{ background: 'rgba(26,18,24,0.5)' }}
           onClick={(e) => { if (e.target === e.currentTarget) { setShowPicker(false); setSearch(''); } }}>
           <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl overflow-hidden"
-            style={{ background: '#FAFAF8', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            style={{ background: '#FBF7F1', maxHeight: '80vh', display: 'flex', flexDirection: 'column', border: '1px solid #E8DDCF' }}>
 
             <div className="flex items-center justify-between p-4"
-              style={{ borderBottom: '0.5px solid #E0D4D8' }}>
+              style={{ borderBottom: '0.5px solid #E8DDCF' }}>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1218' }}>加入鐵皮清單</div>
-                <div className="text-micro" style={{ color: '#9A7080' }}>
+                <div style={{ fontSize: 15, fontWeight: 500, color: '#2F2620' }}>加入鐵皮清單</div>
+                <div className="text-micro" style={{ color: '#8D786B' }}>
                   還可以加 {MAX_WATCHLIST - watchlist.length} 件
                 </div>
               </div>
               <button onClick={() => { setShowPicker(false); setSearch(''); }}
-                className="p-1.5 rounded-full" style={{ background: '#F0E4E8', color: '#7A5060' }}>
+                className="p-1.5 rounded-full" style={{ background: '#F3E7DA', color: '#7A5E47' }}>
                 <X style={{ width: 16, height: 16 }} />
               </button>
             </div>
 
-            <div className="p-3" style={{ borderBottom: '0.5px solid #F0E8EC' }}>
+            <div className="p-3" style={{ borderBottom: '0.5px solid #F1E8DE' }}>
               <div className="relative">
                 <Search style={{ width: 14, height: 14, position: 'absolute', left: 12, top: '50%',
                   transform: 'translateY(-50%)', color: '#B09898' }} />
@@ -211,7 +211,7 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
             <div style={{ overflowY: 'auto', flex: 1 }}>
               {filtered.length === 0 ? (
                 <div className="p-8 text-center">
-                  <p className="text-caption" style={{ color: '#B09898' }}>
+                  <p className="text-caption" style={{ color: '#9D8777' }}>
                     {search ? '找不到符合嘅產品' : '所有產品已在清單內'}
                   </p>
                 </div>
@@ -219,23 +219,23 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
                 filtered.map((p) => (
                   <button key={p.id} onClick={() => addToWatchlist(p)}
                     disabled={toggling === p.id}
-                    className="w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-pink-50"
-                    style={{ borderBottom: '0.5px solid #F5EEF0' }}>
+                    className="w-full flex items-center gap-3 p-3 text-left transition-colors"
+                    style={{ borderBottom: '0.5px solid #F1E8DE' }}>
                     {p.photo_url ? (
                       <img src={p.photo_url} alt={p.name} className="rounded object-cover flex-shrink-0"
-                        style={{ width: 40, height: 40 }} />
+                        style={{ width: 44, height: 44, borderRadius: 18 }} />
                     ) : (
                       <div className="rounded flex-shrink-0 flex items-center justify-center"
-                        style={{ width: 40, height: 40, background: '#E8E0E4', color: '#5A4050',
+                        style={{ width: 44, height: 44, background: '#E8E0E4', color: '#5A4050',
                           fontSize: 16, fontFamily: "'Cormorant Garamond', serif" }}>
                         {p.name.slice(0, 1)}
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <div className="text-caption font-medium truncate" style={{ color: '#1A1218' }}>{p.name}</div>
-                      <div className="text-micro" style={{ color: '#9A7080' }}>{p.brand ?? '—'}</div>
+                      <div className="text-caption font-medium truncate" style={{ color: '#2F2620' }}>{p.name}</div>
+                      <div className="text-micro" style={{ color: '#8D786B' }}>{p.brand ?? '—'}</div>
                     </div>
-                    <Plus style={{ width: 16, height: 16, color: '#C8B4BC', flexShrink: 0 }} />
+                    <Plus style={{ width: 16, height: 16, color: '#B89E88', flexShrink: 0 }} />
                   </button>
                 ))
               )}
@@ -245,22 +245,22 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
       )}
 
       {/* Monthly report */}
-      <div className="card p-4 space-y-3">
+      <div className="fini-section-panel p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1218' }}>{monthLabel}鐵皮報告</div>
+            <div style={{ fontSize: 15, fontWeight: 500, color: '#2F2620' }}>{monthLabel}鐵皮報告</div>
             {thisMonth.length === 0 ? (
-              <p className="text-micro mt-0.5" style={{ color: '#B09898' }}>本月尚未有鐵皮記錄</p>
+              <p className="text-micro mt-0.5" style={{ color: '#9D8777' }}>本月尚未有鐵皮記錄</p>
             ) : (
-              <p className="text-micro mt-0.5" style={{ color: '#7A6068' }}>
-                本月用完 <span style={{ color: '#B06070', fontWeight: 500 }}>{thisMonth.length}</span> 件
-                {thisMonthSavings > 0 && <> · 節省 <span style={{ color: '#2E7A4A', fontWeight: 500 }}>HK${thisMonthSavings.toFixed(0)}</span></>}
+              <p className="text-micro mt-0.5" style={{ color: '#7A6656' }}>
+                本月用完 <span style={{ color: '#8A6A52', fontWeight: 500 }}>{thisMonth.length}</span> 件
+                {thisMonthSavings > 0 && <> · 節省 <span style={{ color: '#66806A', fontWeight: 500 }}>HK${thisMonthSavings.toFixed(0)}</span></>}
               </p>
             )}
           </div>
           <button onClick={generateReport} disabled={generatingReport}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption"
-            style={{ background: '#B06070', color: '#FDF8F6', opacity: generatingReport ? 0.7 : 1 }}>
+            style={{ background: 'linear-gradient(180deg, #A67C52 0%, #8A6A52 100%)', color: '#FFF9F4', opacity: generatingReport ? 0.7 : 1 }}>
             <Share2 style={{ width: 13, height: 13 }} />
             {generatingReport ? '生成中...' : '生成報告'}
           </button>
@@ -268,7 +268,7 @@ export default function EmptyBottleClient({ allActive, thisMonth, thisMonthSavin
 
         {reportHtml && (
           <div className="space-y-2">
-            <p className="text-micro" style={{ color: '#9A7080' }}>截圖後可分享到 IG / 小紅書 📸</p>
+            <p className="text-micro" style={{ color: '#8D786B' }}>截圖後可分享到 IG / 小紅書 📸</p>
             <div className="rounded-md overflow-hidden" style={{ border: '0.5px solid #E0D4D8' }}
               dangerouslySetInnerHTML={{ __html: reportHtml }} />
           </div>
