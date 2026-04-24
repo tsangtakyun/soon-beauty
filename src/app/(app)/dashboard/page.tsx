@@ -132,12 +132,12 @@ export default async function DashboardPage() {
       </section>
 
       <div className="fini-dash-top-row">
-        <section className="fini-dash-home-mascot-card fini-dash-home-mascot-card-peek">
+        <section className="fini-dash-home-mascot-shell">
           <div className="fini-dash-home-bubble fini-dash-home-bubble-floating">
             <p className="fini-lama-greeting-text">{caretakerMessage}</p>
           </div>
           <div className="fini-dash-home-peek-wrap">
-            <Image src="/brand/cat-peek.png" alt="Neaty Beauty 管家貓咪" width={220} height={150} />
+            <Image src="/brand/cat-peek.png" alt="Neaty Beauty 管家貓咪" width={320} height={190} />
           </div>
         </section>
 

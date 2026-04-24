@@ -1697,6 +1697,11 @@
   display: flex;
 }
 
+.fini-dash-home-mascot-shell {
+  position: relative;
+  min-height: 300px;
+}
+
 .fini-dash-home-mascot-card {
   width: 100%;
   padding: 24px;
@@ -1719,7 +1724,7 @@
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  min-height: 180px;
+  min-height: 280px;
 }
 
 .fini-dash-home-bubble {
@@ -1732,9 +1737,9 @@
 
 .fini-dash-home-bubble-floating {
   position: absolute;
-  top: 22px;
-  left: 22px;
-  right: 22px;
+  top: 10px;
+  left: 0;
+  right: 0;
   z-index: 1;
 }
 
