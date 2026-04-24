@@ -1,8 +1,8 @@
-# SOON Beauty
+# Neaty Beauty
 
 > 你嘅化妝品護膚品管家 — 追蹤開封日、過期日同存貨。
 
-**Phase 1 MVP** · by SOON · 繁體中文（香港）
+**Phase 1 MVP** · by Neaty Beauty · 繁體中文（香港）
 
 ---
 
@@ -28,7 +28,7 @@
 - ⏳ 消耗挑戰
 - ⏳ 年度空瓶報告
 - ⏳ Pro tier（Stripe）
-- ⏳ 同SOON content venture整合
+- ⏳ 同 Neaty Beauty content venture 整合
 
 ---
 
@@ -222,4 +222,4 @@ const response = await anthropic.messages.create({
 
 ---
 
-Built by Tommy · SOON · 2026
+Built by Tommy · Neaty Beauty · 2026

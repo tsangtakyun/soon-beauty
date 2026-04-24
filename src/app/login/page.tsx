@@ -56,7 +56,7 @@ export default function LoginPage() {
 
         {/* Logo */}
         <Link href="/" className="fini-login-logo">
-          Soon Beauty <span>paw</span>
+          Neaty Beauty <span>paw</span>
         </Link>
 
         <div className="fini-login-form-wrap">
@@ -157,7 +157,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="fini-login-footer">Soon Beauty · soft / warm / natural</p>
+        <p className="fini-login-footer">Neaty Beauty · soft / warm / natural</p>
       </div>
 
       {/* Right — image */}

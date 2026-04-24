@@ -1,4 +1,4 @@
-// Database types for SOON-Beauty
+// Database types for Neaty Beauty
 // To regenerate: npm run db:types (after setting your Supabase project ID)
 
 export type Database = {

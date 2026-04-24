@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="fini-app-header hidden sm:block">
         <div className="container-app flex items-center justify-between h-[70px]">
           <Link href="/dashboard" className="fini-app-logo">
-            Soon Beauty <span>paw</span>
+            Neaty Beauty <span>paw</span>
           </Link>
           <nav className="flex items-center gap-2">
             <NavLink href="/dashboard"    label="首頁" />
@@ -33,7 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="fini-app-header sm:hidden">
         <div className="container-app flex items-center justify-between h-16">
           <Link href="/dashboard" className="fini-app-logo">
-            Soon Beauty <span>paw</span>
+            Neaty Beauty <span>paw</span>
           </Link>
           <div className="fini-mobile-badge">
             <PawPrint className="h-4 w-4" />

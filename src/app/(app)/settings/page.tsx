@@ -65,7 +65,7 @@ export default async function SettingsPage() {
       <SettingsActions />
 
       <p className="text-micro text-ink-400 text-center pt-4">
-        SOON Beauty · Phase 1 MVP
+        Neaty Beauty · Phase 1 MVP
       </p>
     </div>
   );

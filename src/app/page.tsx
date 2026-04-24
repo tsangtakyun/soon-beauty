@@ -51,7 +51,7 @@ export default function HomePage() {
     <main className="fini-page">
       <nav className="fini-nav">
         <Link href="/" className="fini-logo">
-          Soon Beauty <span>paw</span>
+          Neaty Beauty <span>paw</span>
         </Link>
         <div className="fini-nav-links">
           <Link href="#moodboard" className="fini-nav-link">風格</Link>
@@ -76,7 +76,7 @@ export default function HomePage() {
           </h1>
 
           <p className="fini-subline">
-            Soon Beauty 將護膚管理、色彩分析同日常筆記放入同一個柔和空間。
+            Neaty Beauty 將護膚管理、色彩分析同日常筆記放入同一個柔和空間。
             唔再係冷冰冰嘅 dashboard，而係一個你真係想每日打開嘅 beauty home。
           </p>
 
@@ -113,7 +113,7 @@ export default function HomePage() {
             </div>
             <Image
               src="/lama.svg"
-              alt="Soon Beauty 的品牌貓咪角色"
+              alt="Neaty Beauty 的品牌貓咪角色"
               width={360}
               height={420}
               className="fini-hero-mascot"
@@ -190,7 +190,7 @@ export default function HomePage() {
       </section>
 
       <footer className="fini-footer">
-        <p className="fini-footer-by">Soon Beauty · soft / warm / natural / simple</p>
+        <p className="fini-footer-by">Neaty Beauty · soft / warm / natural / simple</p>
         <p className="fini-footer-by">© 2026 · your beauty, gently organized</p>
       </footer>
     </main>
