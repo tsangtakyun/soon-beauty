@@ -3,11 +3,13 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Camera, Check, Loader2, Plus, Sparkles } from 'lucide-react';
+import { Camera, Check, ChevronDown, Loader2, Plus, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import type { Category, Product, RecentMakeupLog } from '@/types/database';
+import { compressImage } from '@/lib/image';
+import type { Category, Product, RecentMakeupLog, Profile } from '@/types/database';
 import {
   MAKEUP_SHARE_TEMPLATES,
+  canUsePremiumShare,
   type MakeupShareTemplate,
 } from '@/lib/recent-makeup-share';
 
@@ -15,6 +17,7 @@ type RecentMakeupFormProps = {
   products: Product[];
   logs: RecentMakeupLog[];
   categories: Category[];
+  profile: Pick<Profile, 'tier'> | null;
 };
 
 type LogPreview = RecentMakeupLog & {
@@ -34,12 +37,12 @@ async function uploadSelfie(file: File, userId: string) {
   return data.publicUrl;
 }
 
-export default function RecentMakeupForm({ products, logs, categories }: RecentMakeupFormProps) {
+export default function RecentMakeupForm({ products, logs, categories, profile }: RecentMakeupFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [activeCategory, setActiveCategory] = useState<string>('collapsed');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<MakeupShareTemplate['id']>(
     MAKEUP_SHARE_TEMPLATES[0].id
@@ -50,6 +53,9 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
   const [error, setError] = useState<string | null>(null);
   const [sharePreviewLoading, setSharePreviewLoading] = useState(false);
   const [sharePreviewError, setSharePreviewError] = useState<string | null>(null);
+  const [shareGenerating, setShareGenerating] = useState(false);
+  const [shareGenerateError, setShareGenerateError] = useState<string | null>(null);
+  const [generatedShareUrl, setGeneratedShareUrl] = useState<string | null>(null);
   const [sharePreviewData, setSharePreviewData] = useState<{
     currentTier: 'free' | 'pro' | 'pro_plus';
     premiumEnabled: boolean;
@@ -112,6 +118,9 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
   }, [categories, products]);
 
   const filteredCategoryGroups = useMemo(() => {
+    if (activeCategory === 'collapsed') {
+      return [];
+    }
     const query = searchQuery.trim().toLowerCase();
 
     return categoryMeta
@@ -126,6 +135,8 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
       }))
       .filter((group) => group.products.length > 0);
   }, [activeCategory, categoryMeta, searchQuery]);
+
+  const premiumEnabled = canUsePremiumShare(profile);
 
   const selectedProductObjects = useMemo(
     () => products.filter((product) => selectedProducts.includes(product.id)),
@@ -214,6 +225,41 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
     }
   }
 
+  async function handleGenerateShareImage() {
+    setShareGenerating(true);
+    setShareGenerateError(null);
+    setGeneratedShareUrl(null);
+
+    try {
+      const response = await fetch('/api/recent-makeup/generate-share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateId: selectedTemplate,
+          title: title.trim() || null,
+          notes: notes.trim() || null,
+          selfieUrl: logs[0]?.selfie_url ?? null,
+          ...(file ? await compressImage(file, { maxDimension: 1400, quality: 0.86 }) : {}),
+          selectedProducts: selectedProductObjects.map((product) => ({
+            name: product.name,
+            brand: product.brand,
+          })),
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? '未能生成分享圖');
+      }
+
+      setGeneratedShareUrl(payload.imageUrl);
+    } catch (err) {
+      setShareGenerateError(err instanceof Error ? err.message : '未能生成分享圖');
+    } finally {
+      setShareGenerating(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="fini-section-panel">
@@ -278,6 +324,65 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
             </div>
           </div>
 
+          <section className="fini-makeup-premium-hero">
+            <div className="fini-makeup-premium-hero-copy">
+              <p className="fini-section-kicker">AI 妝容封面</p>
+              <h2 className="fini-section-title">生成今日妝容雜誌圖</h2>
+              <p className="fini-dash-sub mt-2">
+                以自拍、妝容標題與已選產品，整理成可分享的美容雜誌風封面。
+              </p>
+              <div className="fini-makeup-premium-hero-actions">
+                <button
+                  type="button"
+                  className="fini-makeup-generate-button"
+                  onClick={handleGenerateShareImage}
+                  disabled={shareGenerating || !premiumEnabled}
+                >
+                  {shareGenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      生成中...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      {premiumEnabled ? '生成 AI 妝容封面' : '解鎖 AI 妝容封面'}
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="fini-home-secondary"
+                  onClick={handlePreviewShareTemplate}
+                  disabled={sharePreviewLoading}
+                >
+                  {sharePreviewLoading ? '整理中...' : '查看模板規格'}
+                </button>
+              </div>
+              <p className="fini-makeup-premium-hero-note">
+                {premiumEnabled
+                  ? '你目前已可使用分享圖生成功能。'
+                  : '此功能可作為 Premium 方案內容，先吸引用戶解鎖。'}
+              </p>
+            </div>
+            <div className="fini-makeup-demo-card" aria-hidden="true">
+              <span className="fini-makeup-demo-kicker">AI DEMO</span>
+              <strong>Today&apos;s Makeup</strong>
+              <p>柔光封面 · 產品清單 · 自拍主視覺</p>
+            </div>
+          </section>
+
+          {shareGenerateError && <div className="fini-login-error">{shareGenerateError}</div>}
+
+          {generatedShareUrl && (
+            <div className="fini-makeup-generated-panel">
+              <img src={generatedShareUrl} alt="AI 妝容封面" className="fini-makeup-generated-image" />
+              <a href={generatedShareUrl} target="_blank" rel="noreferrer" className="fini-home-secondary">
+                開啟分享圖
+              </a>
+            </div>
+          )}
+
           <div className="space-y-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -298,12 +403,15 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
             <div className="fini-makeup-category-row">
               <button
                 type="button"
-                className={`fini-makeup-category-pill ${activeCategory === 'all' ? 'is-active' : ''}`}
-                onClick={() => setActiveCategory('all')}
+                className={`fini-makeup-category-pill ${activeCategory !== 'collapsed' ? 'is-active' : ''}`}
+                onClick={() =>
+                  setActiveCategory((current) => (current === 'collapsed' ? 'all' : 'collapsed'))
+                }
               >
-                全部分類
+                {activeCategory === 'collapsed' ? '展開全部分類' : '收起產品分類'}
+                <ChevronDown className={`w-4 h-4 ${activeCategory !== 'collapsed' ? 'rotate-180' : ''}`} />
               </button>
-              {categoryMeta.map((group) => (
+              {activeCategory !== 'collapsed' && categoryMeta.map((group) => (
                 <button
                   key={group.id}
                   type="button"
@@ -320,7 +428,13 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
                 已選 {selectedProducts.length} 件
               </span>
             </div>
-            {filteredCategoryGroups.length === 0 ? (
+            {activeCategory === 'collapsed' ? (
+              <div className="fini-empty-state p-5">
+                <p className="text-caption" style={{ color: '#8D786B' }}>
+                  先展開分類清單，再挑選這次妝容使用的產品。
+                </p>
+              </div>
+            ) : filteredCategoryGroups.length === 0 ? (
               <div className="fini-empty-state p-5">
                 <p className="text-caption" style={{ color: '#8D786B' }}>
                   找不到符合條件的產品。你可以清除搜尋，或先到產品頁新增產品。
@@ -384,11 +498,11 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
       <section className="fini-section-panel">
           <div className="fini-makeup-premium-head">
             <div>
-              <p className="fini-section-kicker">分享圖預覽</p>
-              <h2 className="fini-section-title">雜誌式分享圖</h2>
-            <p className="fini-dash-sub mt-2">
-              之後可用自拍與已選產品生成雜誌風分享圖，方便直接分享當日妝容與使用清單。
-            </p>
+              <p className="fini-section-kicker">模板預覽</p>
+              <h2 className="fini-section-title">AI 妝容封面模板</h2>
+              <p className="fini-dash-sub mt-2">
+                之後可用自拍與已選產品生成雜誌風分享圖，方便直接分享當日妝容與使用清單。
+              </p>
           </div>
           <span className="fini-premium-badge">
             <Sparkles className="w-4 h-4" />
@@ -412,14 +526,6 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
 
         <div className="fini-makeup-premium-note">
           <p>此功能已預留在頁面內，之後可再接入付費方案、生成圖流程與範本選擇。</p>
-          <button
-            type="button"
-            className="fini-home-secondary fini-makeup-preview-button"
-            onClick={handlePreviewShareTemplate}
-            disabled={sharePreviewLoading}
-          >
-            {sharePreviewLoading ? '整理中...' : '查看生成規格'}
-          </button>
         </div>
 
         {sharePreviewError && <div className="fini-login-error">{sharePreviewError}</div>}

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import RecentMakeupForm from '@/components/RecentMakeupForm';
-import type { Product, RecentMakeupLog, Category } from '@/types/database';
+import type { Product, RecentMakeupLog, Category, Profile } from '@/types/database';
 
 export default async function RecentMakeupPage() {
   const supabase = await createClient();
@@ -12,7 +12,7 @@ export default async function RecentMakeupPage() {
 
   if (!user) return null;
 
-  const [{ data: products }, { data: logs }, { data: categories }] = await Promise.all([
+  const [{ data: products }, { data: logs }, { data: categories }, { data: profile }] = await Promise.all([
     supabase
       .from('products')
       .select('*')
@@ -29,6 +29,7 @@ export default async function RecentMakeupPage() {
       .select('*')
       .eq('user_id', user.id)
       .order('sort_order', { ascending: true }),
+    supabase.from('profiles').select('tier').eq('id', user.id).single(),
   ]);
 
   return (
@@ -52,6 +53,7 @@ export default async function RecentMakeupPage() {
         products={(products as Product[] | null) ?? []}
         logs={(logs as RecentMakeupLog[] | null) ?? []}
         categories={(categories as Category[] | null) ?? []}
+        profile={(profile as Pick<Profile, 'tier'> | null) ?? null}
       />
     </div>
   );

@@ -109,6 +109,8 @@ export type Database = {
           title: string | null;
           notes: string | null;
           selfie_url: string | null;
+          share_image_url: string | null;
+          share_template_id: string | null;
           used_product_ids: string[];
           created_at: string;
         };
@@ -118,6 +120,8 @@ export type Database = {
           title?: string | null;
           notes?: string | null;
           selfie_url?: string | null;
+          share_image_url?: string | null;
+          share_template_id?: string | null;
           used_product_ids?: string[];
         };
         Update: Partial<Database['public']['Tables']['recent_makeup_logs']['Insert']>;

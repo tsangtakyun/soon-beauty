@@ -101,3 +101,8 @@ export function buildMakeupSharePrompt(input: MakeupSharePromptInput) {
     },
   };
 }
+
+export function getMakeupShareOutputSize(templateId: MakeupShareTemplate['id']) {
+  const template = getMakeupShareTemplate(templateId);
+  return template.orientation === 'portrait' ? '1024x1536' : '1024x1024';
+}
