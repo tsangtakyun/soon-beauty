@@ -6,7 +6,7 @@ import { Home, Package, Settings, Award, CalendarDays, PawPrint } from 'lucide-r
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  if (!user) redirect('/');
 
   return (
     <div className="min-h-screen pb-24 sm:pb-0" style={{ background: '#FBF7F1' }}>
