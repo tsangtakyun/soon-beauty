@@ -226,12 +226,6 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
   }
 
   async function handleGenerateShareImage() {
-    if (!premiumEnabled) {
-      setShareGenerateError('AI 妝容封面目前屬於 Premium 功能，你可以先升級後再使用。');
-      setGeneratedShareUrl(null);
-      return;
-    }
-
     setShareGenerating(true);
     setShareGenerateError(null);
     setGeneratedShareUrl(null);
