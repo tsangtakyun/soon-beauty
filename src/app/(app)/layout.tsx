@@ -1,7 +1,15 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { Home, Package, Settings, Award, CalendarDays, PawPrint } from 'lucide-react';
+import { Home, FlaskConical, Plus, Award, CalendarDays, PawPrint } from 'lucide-react';
+
+const navItems = [
+  { href: '/dashboard', label: '個人首頁', icon: <Home className="w-5 h-5" /> },
+  { href: '/analyze', label: '成份分析', icon: <FlaskConical className="w-5 h-5" /> },
+  { href: '/products/scan', label: '新增產品', icon: <Plus className="w-5 h-5" />, featured: true },
+  { href: '/empty-bottle', label: '鐵皮計劃', icon: <Award className="w-5 h-5" /> },
+  { href: '/calendar', label: '我的日曆', icon: <CalendarDays className="w-5 h-5" /> },
+] as const;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -17,14 +25,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/dashboard" className="fini-app-logo">
             Neaty Beauty <span>paw</span>
           </Link>
-          <nav className="flex items-center gap-2">
-            <NavLink href="/dashboard"    label="首頁" />
-            <NavLink href="/products"     label="產品" />
-            <NavLink href="/calendar"     label="日曆" />
-            <NavLink href="/analyze"      label="分析成份" />
-            <NavLink href="/skin-tone"    label="色彩分析" />
-            <NavLink href="/empty-bottle" label="鐵皮計劃" />
-            <NavLink href="/settings"     label="設定" />
+          <nav className="fini-app-desktop-nav">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                featured={item.featured}
+              />
+            ))}
           </nav>
         </div>
       </header>
@@ -47,30 +56,35 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-10"
         style={{ background: 'rgba(251,247,241,0.96)', borderTop: '0.5px solid #E9DED0', backdropFilter: 'blur(12px)' }}>
         <div className="flex items-end justify-around h-[72px] px-2">
-          <BottomNavLink href="/dashboard" icon={<Home className="w-5 h-5" />}        label="首頁" />
-          <BottomNavLink href="/products"  icon={<Package className="w-5 h-5" />}     label="產品" />
-
-          {/* Central 鐵皮 button */}
-          <div className="flex flex-col items-center" style={{ marginBottom: 14 }}>
-            <Link href="/empty-bottle" className="flex items-center justify-center rounded-full"
-              style={{ width: 54, height: 54, background: 'linear-gradient(180deg, #A67C52 0%, #8B6645 100%)', boxShadow: '0 10px 22px rgba(138,106,82,0.28)' }}>
-              <Award style={{ width: 22, height: 22, color: '#FFF9F4' }} />
-            </Link>
-            <span className="mt-1" style={{ color: '#8A6A52', fontSize: 10 }}>鐵皮</span>
-          </div>
-
-          <BottomNavLink href="/calendar" icon={<CalendarDays className="w-5 h-5" />} label="日曆" />
-          <BottomNavLink href="/settings" icon={<Settings className="w-5 h-5" />}     label="設定" />
+          {navItems.map((item) =>
+            item.featured ? (
+              <FeaturedBottomNavLink
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                label={item.label}
+              />
+            ) : (
+              <BottomNavLink
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                label={item.label}
+              />
+            )
+          )}
         </div>
       </nav>
     </div>
   );
 }
 
-function NavLink({ href, label }: { href: string; label: string }) {
+function NavLink({ href, label, featured }: { href: string; label: string; featured?: boolean }) {
   return (
-    <Link href={href} className="inline-flex items-center px-3.5 py-2 text-caption rounded-full transition-colors"
-      style={{ color: '#6F5A4F', letterSpacing: '0.02em', background: 'rgba(255,253,249,0.8)', border: '1px solid rgba(233,223,214,0.9)' }}>
+    <Link
+      href={href}
+      className={`fini-app-nav-link ${featured ? 'fini-app-nav-link-featured' : ''}`}
+    >
       {label}
     </Link>
   );
@@ -78,10 +92,20 @@ function NavLink({ href, label }: { href: string; label: string }) {
 
 function BottomNavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
-    <Link href={href} className="flex flex-col items-center justify-center gap-0.5 transition-colors"
-      style={{ color: '#8A7365', minWidth: 48 }}>
+    <Link href={href} className="fini-bottom-nav-link">
       {icon}
-      <span style={{ fontSize: 10 }}>{label}</span>
+      <span>{label}</span>
     </Link>
+  );
+}
+
+function FeaturedBottomNavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+  return (
+    <div className="fini-bottom-nav-featured-wrap">
+      <Link href={href} className="fini-bottom-nav-featured">
+        {icon}
+      </Link>
+      <span className="fini-bottom-nav-featured-label">{label}</span>
+    </div>
   );
 }

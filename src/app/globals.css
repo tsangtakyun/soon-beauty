@@ -769,6 +769,42 @@
   letter-spacing: 0.06em;
 }
 
+.fini-app-desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.fini-app-nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 223, 214, 0.9);
+  background: rgba(255, 253, 249, 0.86);
+  color: #6f5a4f;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.fini-app-nav-link:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.fini-app-nav-link-featured {
+  background: linear-gradient(180deg, #a67c52 0%, #8b6645 100%);
+  color: #fff9f4;
+  box-shadow: 0 10px 22px rgba(138, 106, 82, 0.2);
+}
+
 .fini-dash-title {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 28px;
@@ -1457,6 +1493,52 @@
   color: #8a6a52;
 }
 
+.fini-bottom-nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 52px;
+  color: #8a7365;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.fini-bottom-nav-link span {
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.fini-bottom-nav-featured-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.fini-bottom-nav-featured {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #a67c52 0%, #8b6645 100%);
+  box-shadow: 0 10px 22px rgba(138, 106, 82, 0.28);
+  color: #fff9f4;
+  text-decoration: none;
+}
+
+.fini-bottom-nav-featured-label {
+  margin-top: 4px;
+  color: #8a6a52;
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+}
+
 .fini-dash-title {
   font-size: 34px;
 }
@@ -1928,6 +2010,17 @@
   .fini-login-logo,
   .fini-app-logo {
     font-size: 24px;
+  }
+
+  .fini-app-desktop-nav {
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .fini-app-nav-link {
+    flex-shrink: 0;
+    padding: 0 14px;
   }
 
   .fini-nav-links {
