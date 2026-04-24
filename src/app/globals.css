@@ -2062,6 +2062,81 @@
   line-height: 1.8;
 }
 
+.fini-makeup-preview-button {
+  margin-top: 14px;
+}
+
+.fini-makeup-preview-panel {
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid #eadfd2;
+  background: linear-gradient(180deg, #fffefb 0%, #faf4ec 100%);
+}
+
+.fini-makeup-preview-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.fini-makeup-preview-meta h3 {
+  margin: 4px 0 0;
+  font-size: 22px;
+  color: #2f2620;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 500;
+}
+
+.fini-premium-state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fini-premium-state.is-on {
+  background: #eef3ea;
+  color: #5f7864;
+}
+
+.fini-premium-state.is-off {
+  background: #f6ece3;
+  color: #8a6a52;
+}
+
+.fini-makeup-preview-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.fini-makeup-preview-summary span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #f3e7da;
+  color: #7a5e47;
+  font-size: 12px;
+}
+
+.fini-makeup-preview-prompt {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #6c584b;
+}
+
 .fini-makeup-log-row {
   display: grid;
   grid-template-columns: 112px minmax(0, 1fr);

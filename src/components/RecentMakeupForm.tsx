@@ -6,6 +6,10 @@ import Image from 'next/image';
 import { Camera, Check, Loader2, Plus, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Category, Product, RecentMakeupLog } from '@/types/database';
+import {
+  MAKEUP_SHARE_TEMPLATES,
+  type MakeupShareTemplate,
+} from '@/lib/recent-makeup-share';
 
 type RecentMakeupFormProps = {
   products: Product[];
@@ -16,24 +20,6 @@ type RecentMakeupFormProps = {
 type LogPreview = RecentMakeupLog & {
   usedProducts: Product[];
 };
-
-const MAGAZINE_TEMPLATES = [
-  {
-    id: 'soft-cover',
-    name: '柔光封面',
-    description: '偏奶油紙感，適合日常妝與溫柔自拍。',
-  },
-  {
-    id: 'editorial-note',
-    name: '編輯手記',
-    description: '像雜誌內頁，會同時突出妝容與使用產品。',
-  },
-  {
-    id: 'product-sheet',
-    name: '產品清單',
-    description: '以產品排列與妝容重點為主，適合分享今日搭配。',
-  },
-];
 
 async function uploadSelfie(file: File, userId: string) {
   const supabase = createClient();
@@ -55,11 +41,29 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState<string>(MAGAZINE_TEMPLATES[0].id);
+  const [selectedTemplate, setSelectedTemplate] = useState<MakeupShareTemplate['id']>(
+    MAKEUP_SHARE_TEMPLATES[0].id
+  );
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sharePreviewLoading, setSharePreviewLoading] = useState(false);
+  const [sharePreviewError, setSharePreviewError] = useState<string | null>(null);
+  const [sharePreviewData, setSharePreviewData] = useState<{
+    currentTier: 'free' | 'pro' | 'pro_plus';
+    premiumEnabled: boolean;
+    preview: {
+      template: MakeupShareTemplate;
+      prompt: string;
+      summary: {
+        title: string;
+        notes: string;
+        productCount: number;
+        orientation: 'portrait' | 'square';
+      };
+    };
+  } | null>(null);
 
   const enrichedLogs = useMemo<LogPreview[]>(() => {
     return logs.map((log) => ({
@@ -123,6 +127,11 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
       .filter((group) => group.products.length > 0);
   }, [activeCategory, categoryMeta, searchQuery]);
 
+  const selectedProductObjects = useMemo(
+    () => products.filter((product) => selectedProducts.includes(product.id)),
+    [products, selectedProducts]
+  );
+
   function toggleProduct(productId: string) {
     setSelectedProducts((current) =>
       current.includes(productId)
@@ -169,6 +178,39 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
       setError(err instanceof Error ? err.message : '儲存失敗，請稍後再試。');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handlePreviewShareTemplate() {
+    setSharePreviewLoading(true);
+    setSharePreviewError(null);
+
+    try {
+      const response = await fetch('/api/recent-makeup/share-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateId: selectedTemplate,
+          title: title.trim() || null,
+          notes: notes.trim() || null,
+          selfieUrl: previewUrl,
+          selectedProducts: selectedProductObjects.map((product) => ({
+            name: product.name,
+            brand: product.brand,
+          })),
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? '未能建立分享圖規格');
+      }
+
+      setSharePreviewData(payload);
+    } catch (err) {
+      setSharePreviewError(err instanceof Error ? err.message : '未能建立分享圖規格');
+    } finally {
+      setSharePreviewLoading(false);
     }
   }
 
@@ -340,10 +382,10 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
       </section>
 
       <section className="fini-section-panel">
-        <div className="fini-makeup-premium-head">
-          <div>
-            <p className="fini-section-kicker">分享圖預覽</p>
-            <h2 className="fini-section-title">雜誌式分享圖</h2>
+          <div className="fini-makeup-premium-head">
+            <div>
+              <p className="fini-section-kicker">分享圖預覽</p>
+              <h2 className="fini-section-title">雜誌式分享圖</h2>
             <p className="fini-dash-sub mt-2">
               之後可用自拍與已選產品生成雜誌風分享圖，方便直接分享當日妝容與使用清單。
             </p>
@@ -355,7 +397,7 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
         </div>
 
         <div className="fini-makeup-template-grid">
-          {MAGAZINE_TEMPLATES.map((template) => (
+          {MAKEUP_SHARE_TEMPLATES.map((template) => (
             <button
               key={template.id}
               type="button"
@@ -370,7 +412,39 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
 
         <div className="fini-makeup-premium-note">
           <p>此功能已預留在頁面內，之後可再接入付費方案、生成圖流程與範本選擇。</p>
+          <button
+            type="button"
+            className="fini-home-secondary fini-makeup-preview-button"
+            onClick={handlePreviewShareTemplate}
+            disabled={sharePreviewLoading}
+          >
+            {sharePreviewLoading ? '整理中...' : '查看生成規格'}
+          </button>
         </div>
+
+        {sharePreviewError && <div className="fini-login-error">{sharePreviewError}</div>}
+
+        {sharePreviewData && (
+          <div className="fini-makeup-preview-panel">
+            <div className="fini-makeup-preview-meta">
+              <div>
+                <p className="fini-section-kicker">模板摘要</p>
+                <h3>{sharePreviewData.preview.template.name}</h3>
+              </div>
+              <span className={`fini-premium-state ${sharePreviewData.premiumEnabled ? 'is-on' : 'is-off'}`}>
+                {sharePreviewData.premiumEnabled
+                  ? `已開通 ${sharePreviewData.currentTier}`
+                  : `目前方案：${sharePreviewData.currentTier}`}
+              </span>
+            </div>
+            <div className="fini-makeup-preview-summary">
+              <span>比例：{sharePreviewData.preview.summary.orientation === 'portrait' ? '直向 4:5' : '正方形 1:1'}</span>
+              <span>產品數量：{sharePreviewData.preview.summary.productCount} 件</span>
+              <span>標題：{sharePreviewData.preview.summary.title}</span>
+            </div>
+            <pre className="fini-makeup-preview-prompt">{sharePreviewData.preview.prompt}</pre>
+          </div>
+        )}
       </section>
 
       <section className="fini-section-panel">
