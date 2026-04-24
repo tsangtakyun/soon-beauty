@@ -3,13 +3,14 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Camera, Check, ChevronDown, Loader2, Plus, Sparkles } from 'lucide-react';
+import { Camera, Check, ChevronDown, Loader2, Plus, Share2, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { compressImage } from '@/lib/image';
 import type { Category, Product, RecentMakeupLog } from '@/types/database';
 import {
   DEFAULT_MAKEUP_SHARE_TEMPLATE_ID,
   getMakeupShareTemplate,
+  type MakeupShareTemplate,
 } from '@/lib/recent-makeup-share';
 
 type RecentMakeupFormProps = {
@@ -73,6 +74,7 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
   const [sharePreviewError, setSharePreviewError] = useState<string | null>(null);
   const [shareGenerating, setShareGenerating] = useState(false);
   const [shareGenerateError, setShareGenerateError] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
   const [generatedShareUrl, setGeneratedShareUrl] = useState<string | null>(null);
   const [sharePreviewData, setSharePreviewData] = useState<{
     preview: {
@@ -277,6 +279,53 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
     }
   }
 
+  async function handleShareGeneratedImage() {
+    if (!generatedShareUrl) return;
+
+    setSharing(true);
+
+    try {
+      const shareTitle = title.trim() || '今日妝容';
+      const shareText = `${shareTitle}｜Neaty Beauty 妝容分享`;
+
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        try {
+          const response = await fetch(generatedShareUrl);
+          const blob = await response.blob();
+          const file = new File([blob], 'neaty-beauty-makeup-share.png', {
+            type: blob.type || 'image/png',
+          });
+
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({
+              title: shareTitle,
+              text: shareText,
+              files: [file],
+            });
+            return;
+          }
+        } catch {
+          // Fallback to URL sharing below if file-based share isn't available.
+        }
+
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: generatedShareUrl,
+        });
+        return;
+      }
+
+      window.open(generatedShareUrl, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        setShareGenerateError('未能開啟分享，請稍後再試。');
+      }
+    } finally {
+      setSharing(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="fini-section-panel">
@@ -392,9 +441,29 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
           {generatedShareUrl && (
             <div className="fini-makeup-generated-panel">
               <img src={generatedShareUrl} alt="AI 妝容封面" className="fini-makeup-generated-image" />
-              <a href={generatedShareUrl} target="_blank" rel="noreferrer" className="fini-home-secondary">
-                開啟分享圖
-              </a>
+              <div className="fini-makeup-generated-actions">
+                <button
+                  type="button"
+                  className="fini-makeup-generate-button"
+                  onClick={handleShareGeneratedImage}
+                  disabled={sharing}
+                >
+                  {sharing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      準備分享中...
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="w-4 h-4" />
+                      分享這張圖
+                    </>
+                  )}
+                </button>
+                <a href={generatedShareUrl} target="_blank" rel="noreferrer" className="fini-home-secondary">
+                  開啟分享圖
+                </a>
+              </div>
             </div>
           )}
 

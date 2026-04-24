@@ -2170,6 +2170,13 @@
   object-fit: cover;
 }
 
+.fini-makeup-generated-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
 .fini-makeup-preview-panel {
   margin-top: 16px;
   padding: 18px;
