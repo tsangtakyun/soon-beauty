@@ -1,21 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
-type Mode = 'login' | 'signup';
+export type AuthMode = 'login' | 'signup';
 
-export default function AuthPanel() {
+type AuthPanelProps = {
+  compact?: boolean;
+  initialMode?: AuthMode;
+};
+
+export default function AuthPanel({
+  compact = false,
+  initialMode = 'login',
+}: AuthPanelProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>('login');
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMode(initialMode);
+    setIsResetting(false);
+    setError(null);
+    setNotice(null);
+  }, [initialMode]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -23,6 +39,27 @@ export default function AuthPanel() {
     setError(null);
     setNotice(null);
     const supabase = createClient();
+
+    if (isResetting) {
+      const redirectTo =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/reset-password`
+          : undefined;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo,
+      });
+
+      if (error) {
+        setError(translateError(error.message));
+        setStatus('error');
+        return;
+      }
+
+      setStatus('idle');
+      setNotice('重設密碼電郵已寄出，請到你的信箱完成下一步。');
+      return;
+    }
 
     if (mode === 'login') {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -77,38 +114,49 @@ export default function AuthPanel() {
 
   return (
     <div className="fini-auth-card">
-      <div className="fini-auth-card-head">
-        <p className="fini-auth-card-kicker">登入或建立帳戶</p>
-        <h2 className="fini-auth-card-title">由首頁開始整理</h2>
-        <p className="fini-auth-card-body">
-          直接在這裡登入，或建立新帳戶後開始記錄你的護膚、彩妝與色彩資料。
-        </p>
-      </div>
+      {!compact && (
+        <div className="fini-auth-card-head">
+          <p className="fini-auth-card-kicker">登入或建立帳戶</p>
+          <h2 className="fini-auth-card-title">由首頁開始整理</h2>
+          <p className="fini-auth-card-body">
+            直接在這裡登入，或建立新帳戶後開始記錄你的護膚、彩妝與色彩資料。
+          </p>
+        </div>
+      )}
 
-      <div className="fini-login-tabs">
-        <button
-          type="button"
-          onClick={() => {
-            setMode('login');
-            setError(null);
-            setNotice(null);
-          }}
-          className={`fini-login-tab ${mode === 'login' ? 'fini-login-tab-active' : ''}`}
-        >
-          登入
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMode('signup');
-            setError(null);
-            setNotice(null);
-          }}
-          className={`fini-login-tab ${mode === 'signup' ? 'fini-login-tab-active' : ''}`}
-        >
-          建立帳戶
-        </button>
-      </div>
+      {!isResetting && (
+        <div className="fini-login-tabs">
+          <button
+            type="button"
+            onClick={() => {
+              setMode('login');
+              setError(null);
+              setNotice(null);
+            }}
+            className={`fini-login-tab ${mode === 'login' ? 'fini-login-tab-active' : ''}`}
+          >
+            登入
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode('signup');
+              setError(null);
+              setNotice(null);
+            }}
+            className={`fini-login-tab ${mode === 'signup' ? 'fini-login-tab-active' : ''}`}
+          >
+            建立帳戶
+          </button>
+        </div>
+      )}
+
+      {isResetting && (
+        <div className="fini-auth-reset-head">
+          <h3 className="fini-auth-reset-title">忘記密碼</h3>
+          <p className="fini-auth-reset-body">輸入你的電郵地址，我們會寄送重設密碼連結。</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="fini-login-form">
         <div className="fini-field">
@@ -128,50 +176,82 @@ export default function AuthPanel() {
           />
         </div>
 
-        <div className="fini-field">
-          <label htmlFor="home-auth-password" className="fini-field-label">
-            密碼
-          </label>
-          <div className="fini-field-pw-wrap">
-            <input
-              id="home-auth-password"
-              type={showPassword ? 'text' : 'password'}
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="fini-field-input"
-              placeholder={mode === 'signup' ? '最少 6 個字符' : '輸入密碼'}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              disabled={status === 'loading'}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="fini-pw-toggle"
-              tabIndex={-1}
-              aria-label={showPassword ? '隱藏密碼' : '顯示密碼'}
-            >
-              {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-            </button>
+        {!isResetting && (
+          <div className="fini-field">
+            <label htmlFor="home-auth-password" className="fini-field-label">
+              密碼
+            </label>
+            <div className="fini-field-pw-wrap">
+              <input
+                id="home-auth-password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="fini-field-input"
+                placeholder={mode === 'signup' ? '最少 6 個字符' : '輸入密碼'}
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                disabled={status === 'loading'}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="fini-pw-toggle"
+                tabIndex={-1}
+                aria-label={showPassword ? '隱藏密碼' : '顯示密碼'}
+              >
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {error && <div className="fini-login-error">{error}</div>}
         {notice && <div className="fini-auth-notice">{notice}</div>}
 
+        {!isResetting && mode === 'login' && (
+          <button
+            type="button"
+            className="fini-auth-text-link"
+            onClick={() => {
+              setIsResetting(true);
+              setError(null);
+              setNotice(null);
+            }}
+          >
+            忘記密碼
+          </button>
+        )}
+
         <button
           type="submit"
           className="fini-login-submit"
-          disabled={status === 'loading' || !email || !password}
+          disabled={status === 'loading' || !email || (!isResetting && !password)}
         >
           {status === 'loading'
             ? '處理中...'
-            : mode === 'login'
+            : isResetting
+              ? '寄送重設連結'
+              : mode === 'login'
               ? '登入'
               : '建立帳戶'}
         </button>
       </form>
+
+      {isResetting && (
+        <button
+          type="button"
+          className="fini-auth-text-link"
+          onClick={() => {
+            setIsResetting(false);
+            setError(null);
+            setNotice(null);
+          }}
+        >
+          返回登入
+        </button>
+      )}
     </div>
   );
 }

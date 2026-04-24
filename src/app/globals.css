@@ -1603,7 +1603,7 @@
 .fini-home {
   display: grid;
   grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1fr);
-  gap: 12px;
+  gap: 3px;
   align-items: center;
   padding: 52px 40px 28px;
 }
@@ -1699,6 +1699,7 @@
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .fini-home-visual {
@@ -1728,33 +1729,18 @@
   padding: 0 40px 34px;
 }
 
-.fini-home-auth {
-  display: grid;
-  grid-template-columns: minmax(0, 0.88fr) minmax(320px, 440px);
-  gap: 28px;
-  align-items: start;
-  padding: 16px 40px 34px;
+.fini-home-auth-launcher {
+  margin-top: 30px;
 }
 
-.fini-home-auth-copy {
-  padding: 22px 6px 0 0;
+.fini-home-actions-placeholder {
+  height: 48px;
+  margin-top: 30px;
 }
 
-.fini-home-auth-title {
-  margin: 0;
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: clamp(2rem, 4vw, 3.3rem);
-  line-height: 1.05;
-  font-weight: 500;
-  color: #30261f;
-}
-
-.fini-home-auth-body {
-  max-width: 520px;
-  margin: 16px 0 0;
-  font-size: 15px;
-  line-height: 1.9;
-  color: #776457;
+.fini-home-inline-auth {
+  max-width: 430px;
+  margin-top: 16px;
 }
 
 .fini-auth-card {
@@ -1800,6 +1786,70 @@
   font-size: 13px;
   line-height: 1.65;
   color: #7a5d45;
+}
+
+.fini-auth-reset-head {
+  margin-bottom: 20px;
+}
+
+.fini-auth-reset-title {
+  margin: 0;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 30px;
+  line-height: 1.05;
+  font-weight: 500;
+  color: #332a24;
+}
+
+.fini-auth-reset-body {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #877264;
+}
+
+.fini-auth-text-link {
+  width: fit-content;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #8d725d;
+  font-size: 13px;
+  line-height: 1.6;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.fini-reset-page {
+  display: flex;
+  justify-content: center;
+  padding: 72px 20px;
+}
+
+.fini-reset-card {
+  width: min(100%, 480px);
+  border: 1px solid #eadfd2;
+  border-radius: 30px;
+  padding: 30px;
+  background: linear-gradient(180deg, rgba(255, 254, 251, 0.94) 0%, rgba(249, 243, 235, 0.9) 100%);
+  box-shadow: 0 18px 38px rgba(126, 101, 79, 0.08);
+}
+
+.fini-reset-title {
+  margin: 0;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 42px;
+  line-height: 1.02;
+  font-weight: 500;
+  color: #332a24;
+}
+
+.fini-reset-body {
+  margin: 14px 0 28px;
+  font-size: 15px;
+  line-height: 1.85;
+  color: #877264;
 }
 
 .fini-home-feature-card {
@@ -1851,10 +1901,6 @@
 
   .fini-home-copy {
     justify-self: start;
-  }
-
-  .fini-home-auth {
-    grid-template-columns: 1fr;
   }
 
   .fini-home-features {
@@ -1972,13 +2018,13 @@
     padding: 0 20px 26px;
   }
 
-  .fini-home-auth {
-    gap: 20px;
-    padding: 10px 20px 24px;
-  }
-
   .fini-auth-card {
     padding: 22px 18px;
+    border-radius: 24px;
+  }
+
+  .fini-reset-card {
+    padding: 24px 18px;
     border-radius: 24px;
   }
 }

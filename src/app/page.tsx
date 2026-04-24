@@ -1,7 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { BookHeart, Droplets, Sparkles } from 'lucide-react';
-import AuthPanel from '@/components/AuthPanel';
+import HomeAuthLauncher from '@/components/HomeAuthLauncher';
 
 const highlights = [
   {
@@ -41,12 +42,12 @@ export default function HomePage() {
           <a className="fini-nav-link" href="#features">
             功能
           </a>
-          <a className="fini-nav-link" href="#auth">
+          <Link className="fini-nav-link" href="/?auth=login">
             登入
-          </a>
-          <a className="fini-nav-cta" href="#auth">
+          </Link>
+          <Link className="fini-nav-cta" href="/?auth=signup">
             開始使用
-          </a>
+          </Link>
         </div>
       </nav>
 
@@ -76,27 +77,10 @@ export default function HomePage() {
             以溫柔而清楚的方式，整理護膚、彩妝與個人色彩紀錄，讓你每次回來，都能輕鬆找到合適的位置。
           </p>
 
-          <div className="fini-home-actions">
-            <a className="fini-home-primary" href="#auth">
-              立即開始
-            </a>
-            <a className="fini-home-secondary" href="#features">
-              了解功能
-            </a>
-          </div>
+          <Suspense fallback={<div className="fini-home-actions-placeholder" />}>
+            <HomeAuthLauncher />
+          </Suspense>
         </div>
-      </section>
-
-      <section className="fini-home-auth" id="auth">
-        <div className="fini-home-auth-copy">
-          <p className="fini-home-kicker">在同一頁開始</p>
-          <h2 className="fini-home-auth-title">登入、註冊，都放在這裡。</h2>
-          <p className="fini-home-auth-body">
-            之後未登入時，系統亦會直接帶你回到首頁處理帳戶，不再跳去獨立登入頁，流程會更簡單。
-          </p>
-        </div>
-
-        <AuthPanel />
       </section>
 
       <section className="fini-home-features" id="features">
