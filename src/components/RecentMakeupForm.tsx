@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Camera, Check, ChevronDown, Loader2, Plus, Share2, Sparkles } from 'lucide-react';
+import { Camera, Check, ChevronDown, Download, Loader2, Plus, Share2, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { compressImage } from '@/lib/image';
 import type { Category, Product, RecentMakeupLog } from '@/types/database';
@@ -75,6 +75,7 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
   const [shareGenerating, setShareGenerating] = useState(false);
   const [shareGenerateError, setShareGenerateError] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [generatedShareUrl, setGeneratedShareUrl] = useState<string | null>(null);
   const [sharePreviewData, setSharePreviewData] = useState<{
     preview: {
@@ -326,6 +327,37 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
     }
   }
 
+  async function handleDownloadGeneratedImage() {
+    if (!generatedShareUrl) return;
+
+    setDownloading(true);
+
+    try {
+      const response = await fetch(generatedShareUrl);
+      if (!response.ok) {
+        throw new Error('未能讀取分享圖片');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const safeTitle = (title.trim() || 'neaty-beauty-makeup-share')
+        .replace(/[\\/:*?"<>|]+/g, '-')
+        .replace(/\s+/g, '-');
+
+      link.href = blobUrl;
+      link.download = `${safeTitle}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch {
+      setShareGenerateError('未能下載圖片，請稍後再試。');
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="fini-section-panel">
@@ -457,6 +489,24 @@ export default function RecentMakeupForm({ products, logs, categories }: RecentM
                     <>
                       <Share2 className="w-4 h-4" />
                       分享這張圖
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="fini-home-secondary"
+                  onClick={handleDownloadGeneratedImage}
+                  disabled={downloading}
+                >
+                  {downloading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      準備下載中...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      儲存到相簿 / 下載圖片
                     </>
                   )}
                 </button>
