@@ -1629,10 +1629,7 @@
 }
 
 .fini-dash-home-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-  gap: 20px;
-  align-items: stretch;
+  display: block;
 }
 
 .fini-dash-home-copy,
@@ -1645,12 +1642,13 @@
 
 .fini-dash-home-copy {
   padding: 28px;
+  text-align: center;
 }
 
 .fini-dash-action-grid {
   display: grid;
   gap: 12px;
-  margin-top: 22px;
+  margin-top: 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -1709,12 +1707,42 @@
   gap: 18px;
 }
 
+.fini-dash-home-mascot-card-peek {
+  position: relative;
+  justify-content: flex-end;
+  align-items: stretch;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+.fini-dash-home-peek-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  min-height: 180px;
+}
+
 .fini-dash-home-bubble {
   width: 100%;
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid #eadfd2;
   padding: 18px;
+}
+
+.fini-dash-home-bubble-floating {
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  right: 22px;
+  z-index: 1;
+}
+
+.fini-dash-top-row {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
+  gap: 16px;
+  align-items: stretch;
 }
 
 .fini-dash-makeup-card {
@@ -1837,6 +1865,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.fini-dash-pan-panel {
+  text-align: center;
+}
+
+.fini-dash-pan-head {
+  width: 100%;
+  text-align: center;
+}
+
+.fini-dash-pan-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 240px));
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .fini-section-panel {
@@ -2213,10 +2258,14 @@
   }
 
   .fini-dash-home-hero {
-    grid-template-columns: 1fr;
+    display: block;
   }
 
   .fini-dash-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fini-dash-top-row {
     grid-template-columns: 1fr;
   }
 
@@ -2373,6 +2422,14 @@
   .fini-dash-home-mascot-card {
     padding: 20px;
     border-radius: 24px;
+  }
+
+  .fini-dash-home-bubble-floating {
+    position: static;
+  }
+
+  .fini-dash-pan-metrics {
+    grid-template-columns: 1fr;
   }
 
   .fini-makeup-log-image,

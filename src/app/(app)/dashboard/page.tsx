@@ -128,125 +128,16 @@ export default async function DashboardPage() {
             {profile?.display_name ? `${profile.display_name}，` : ''}
             呢度會幫你睇住產品狀態、鐵皮進度，同埋最近妝容記錄。
           </p>
-
-          <div className="fini-dash-action-grid">
-            <QuickActionCard
-              href="/skin-tone"
-              title="膚色分析"
-              body={profile?.color_profile ? '已完成個人色彩檔案，可再查看建議。' : '重新查看或補做你的個人色彩分析。'}
-              icon={<Palette className="w-4 h-4" />}
-            />
-            <QuickActionCard
-              href="/recent-makeup"
-              title="最近化妝"
-              body={recentMakeup ? '已經有最近妝容紀錄，可以回看自拍與產品。' : '加入自拍與產品紀錄，建立自己的妝容日誌。'}
-              icon={<Camera className="w-4 h-4" />}
-            />
-            <QuickActionCard
-              href="/settings"
-              title="設定"
-              body="管理名稱、語言與帳戶偏好。"
-              icon={<Cog className="w-4 h-4" />}
-            />
-          </div>
-        </div>
-
-        <div className="fini-dash-home-mascot">
-          <div className="fini-dash-home-mascot-card">
-            <Image src="/brand/cat-notes.png" alt="Neaty Beauty 管家貓咪" width={180} height={180} />
-            <div className="fini-dash-home-bubble">
-              <p className="fini-lama-greeting-text">{caretakerMessage}</p>
-            </div>
-          </div>
         </div>
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-        <section className="fini-section-panel">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="fini-section-kicker">My Products</p>
-              <h2 className="fini-section-title">需要處理的產品</h2>
-            </div>
-            <Link href="/products" className="fini-section-link">查看全部</Link>
+      <div className="fini-dash-top-row">
+        <section className="fini-dash-home-mascot-card fini-dash-home-mascot-card-peek">
+          <div className="fini-dash-home-bubble fini-dash-home-bubble-floating">
+            <p className="fini-lama-greeting-text">{caretakerMessage}</p>
           </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <DashboardMetric label="快將過期" value={stats.expiring_soon_count ?? 0} tone="amber" />
-            <DashboardMetric label="已過期" value={stats.expired_count ?? 0} tone="rose" />
-            <DashboardMetric label="使用中" value={stats.in_use_count ?? 0} tone="sage" />
-            <DashboardMetric label="總收藏" value={stats.total_count ?? 0} tone="cream" />
-          </div>
-
-          {expiringProducts.length === 0 ? (
-            <div className="fini-empty-state p-5">
-              <p className="text-caption" style={{ color: '#8D786B' }}>
-                目前冇快到期產品，狀態幾穩陣。
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {expiringProducts.map((product) => (
-                <ProductRow key={product.id} product={product} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="fini-section-panel">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="fini-section-kicker">New In</p>
-              <h2 className="fini-section-title">最近新增產品</h2>
-            </div>
-            <Link href="/products/scan" className="fini-btn-add">
-              <Plus className="w-4 h-4" />
-              新增產品
-            </Link>
-          </div>
-
-          {newlyAddedProducts.length === 0 ? (
-            <div className="fini-empty-state p-5">
-              <p className="text-caption" style={{ color: '#8D786B' }}>
-                仲未有產品，撳「新增產品」開始整理第一件收藏。
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {newlyAddedProducts.map((product) => (
-                <SimpleProductRow key={product.id} product={product} />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <section className="fini-section-panel">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="fini-section-kicker">Project Pan</p>
-              <h2 className="fini-section-title">鐵皮計劃情況</h2>
-            </div>
-            <Link href="/empty-bottle" className="fini-section-link">查看計劃</Link>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <DashboardMetric label="清單進行中" value={activeWatchlistCount} tone="rose" />
-            <DashboardMetric label="已交鐵皮" value={finishedWatchlistCount} tone="sage" />
-          </div>
-
-          <div className="space-y-2">
-            {watchlist.filter((product) => product.status !== 'finished').slice(0, 3).map((product) => (
-              <SimpleProductRow key={product.id} product={product} eyebrow="鐵皮清單" />
-            ))}
-            {watchlist.filter((product) => product.status !== 'finished').length === 0 && (
-              <div className="fini-empty-state p-5">
-                <p className="text-caption" style={{ color: '#8D786B' }}>
-                  目前仲未設定鐵皮清單，可以去鐵皮計劃頁面加入想優先用完嘅產品。
-                </p>
-              </div>
-            )}
+          <div className="fini-dash-home-peek-wrap">
+            <Image src="/brand/cat-peek.png" alt="Neaty Beauty 管家貓咪" width={220} height={150} />
           </div>
         </section>
 
@@ -310,6 +201,115 @@ export default async function DashboardPage() {
           )}
         </section>
       </div>
+
+      <div className="fini-dash-action-grid">
+        <QuickActionCard
+          href="/skin-tone"
+          title="膚色分析"
+          body={profile?.color_profile ? '已完成個人色彩檔案，可再查看建議。' : '重新查看或補做你的個人色彩分析。'}
+          icon={<Palette className="w-4 h-4" />}
+        />
+        <QuickActionCard
+          href="/recent-makeup"
+          title="最近化妝"
+          body={recentMakeup ? '已經有最近妝容紀錄，可以回看自拍與產品。' : '加入自拍與產品紀錄，建立自己的妝容日誌。'}
+          icon={<Camera className="w-4 h-4" />}
+        />
+        <QuickActionCard
+          href="/settings"
+          title="設定"
+          body="管理名稱、語言與帳戶偏好。"
+          icon={<Cog className="w-4 h-4" />}
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+        <section className="fini-section-panel">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="fini-section-kicker">My Products</p>
+              <h2 className="fini-section-title">需要處理的產品</h2>
+            </div>
+            <Link href="/products" className="fini-section-link">查看全部</Link>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <DashboardMetric label="快將過期" value={stats.expiring_soon_count ?? 0} tone="amber" />
+            <DashboardMetric label="已過期" value={stats.expired_count ?? 0} tone="rose" />
+            <DashboardMetric label="使用中" value={stats.in_use_count ?? 0} tone="sage" />
+            <DashboardMetric label="總收藏" value={stats.total_count ?? 0} tone="cream" />
+          </div>
+
+          {expiringProducts.length === 0 ? (
+            <div className="fini-empty-state p-5">
+              <p className="text-caption" style={{ color: '#8D786B' }}>
+                目前冇快到期產品，狀態幾穩陣。
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {expiringProducts.map((product) => (
+                <ProductRow key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="fini-section-panel">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="fini-section-kicker">New In</p>
+              <h2 className="fini-section-title">最近新增產品</h2>
+            </div>
+            <Link href="/products/scan" className="fini-btn-add">
+              <Plus className="w-4 h-4" />
+              新增產品
+            </Link>
+          </div>
+
+          {newlyAddedProducts.length === 0 ? (
+            <div className="fini-empty-state p-5">
+              <p className="text-caption" style={{ color: '#8D786B' }}>
+                仲未有產品，撳「新增產品」開始整理第一件收藏。
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {newlyAddedProducts.map((product) => (
+                <SimpleProductRow key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <section className="fini-section-panel fini-dash-pan-panel">
+        <div className="flex items-center justify-between mb-4">
+          <div className="fini-dash-pan-head">
+            <p className="fini-section-kicker">Project Pan</p>
+            <h2 className="fini-section-title">鐵皮計劃情況</h2>
+          </div>
+          <Link href="/empty-bottle" className="fini-section-link">查看計劃</Link>
+        </div>
+
+        <div className="fini-dash-pan-metrics">
+          <DashboardMetric label="清單進行中" value={activeWatchlistCount} tone="rose" />
+          <DashboardMetric label="已交鐵皮" value={finishedWatchlistCount} tone="sage" />
+        </div>
+
+        <div className="space-y-2">
+          {watchlist.filter((product) => product.status !== 'finished').slice(0, 3).map((product) => (
+            <SimpleProductRow key={product.id} product={product} eyebrow="鐵皮清單" />
+          ))}
+          {watchlist.filter((product) => product.status !== 'finished').length === 0 && (
+            <div className="fini-empty-state p-5">
+              <p className="text-caption" style={{ color: '#8D786B' }}>
+                目前仲未設定鐵皮清單，可以去鐵皮計劃頁面加入想優先用完嘅產品。
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
