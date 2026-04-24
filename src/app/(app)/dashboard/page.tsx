@@ -5,41 +5,12 @@ import { createClient } from '@/lib/supabase/server';
 import { formatDaysLabel, getExpiryStatus, STATUS_COLORS } from '@/lib/utils';
 import type { Product, ProductWithExpiry, RecentMakeupLog } from '@/types/database';
 
-function getCaretakerMessage({
-  expiredCount,
-  expiringCount,
-  newProductsCount,
-  watchlistCount,
-}: {
-  expiredCount: number;
-  expiringCount: number;
-  newProductsCount: number;
-  watchlistCount: number;
-}) {
-  if (expiredCount > 0) {
-    return `有 ${expiredCount} 件產品已經過期，建議你今日先處理佢哋。`;
-  }
-  if (expiringCount > 0) {
-    return `有 ${expiringCount} 件產品快到期，記得優先用返佢哋。`;
-  }
-  if (watchlistCount > 0) {
-    return `鐵皮清單而家有 ${watchlistCount} 件產品，今個月慢慢推進就啱。`;
-  }
-  if (newProductsCount > 0) {
-    return `最近新增咗 ${newProductsCount} 件產品，記得為佢哋補齊分類同使用狀態。`;
-  }
-  return '而家收藏狀態幾整齊，可以慢慢檢查今日想用邊幾件。';
-}
-
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
   const [
     { data: profile },
@@ -102,20 +73,11 @@ export default async function DashboardPage() {
   const watchlist = (watchlistProducts as Product[] | null) ?? [];
   const recentMakeup = (recentMakeupLogs?.[0] as RecentMakeupLog | undefined) ?? null;
 
-  const latestAddedThisWeek = newlyAddedProducts.filter(
-    (product) => new Date(product.created_at) >= sevenDaysAgo
-  );
   const finishedWatchlistCount = watchlist.filter((product) => product.status === 'finished').length;
   const activeWatchlistCount = watchlist.filter((product) => product.status !== 'finished').length;
   const makeupProducts = recentMakeup
     ? allProducts.filter((product) => recentMakeup.used_product_ids.includes(product.id))
     : [];
-  const caretakerMessage = getCaretakerMessage({
-    expiredCount: stats.expired_count ?? 0,
-    expiringCount: stats.expiring_soon_count ?? 0,
-    newProductsCount: latestAddedThisWeek.length,
-    watchlistCount: activeWatchlistCount,
-  });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -133,15 +95,15 @@ export default async function DashboardPage() {
       <div className="fini-dash-top-row">
         <section className="fini-dash-home-mascot-shell">
           <Image
-            src="/brand/dashboard-mascot-bubble.png"
-            alt="Neaty Beauty 管家貓咪與提示插畫"
-            width={720}
-            height={520}
+            src="/brand/dashboard-mascot-bubble-count.png"
+            alt="Neaty Beauty 管家貓咪與過期產品提示插畫"
+            width={760}
+            height={760}
             className="fini-dash-home-mascot-art"
             priority
           />
-          <div className="fini-dash-home-mascot-text">
-            <p className="fini-lama-greeting-text">{caretakerMessage}</p>
+          <div className="fini-dash-home-mascot-count" aria-hidden="true">
+            <span>{stats.expired_count ?? 0}</span>
           </div>
         </section>
 

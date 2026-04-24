@@ -1641,8 +1641,32 @@
 }
 
 .fini-dash-home-copy {
-  padding: 28px;
+  padding: 24px 28px 22px;
   text-align: center;
+}
+
+.fini-dash-home-copy .fini-section-kicker {
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  color: #b8997f;
+  margin-bottom: 8px;
+}
+
+.fini-dash-home-copy .fini-dash-title {
+  font-size: clamp(28px, 4.1vw, 48px);
+  font-weight: 500;
+  line-height: 1.06;
+  color: #2f2620;
+  margin-bottom: 12px;
+}
+
+.fini-dash-home-copy .fini-dash-sub {
+  max-width: 620px;
+  margin: 0 auto;
+  font-size: 15px;
+  line-height: 1.9;
+  font-weight: 400;
+  color: #9d8777;
 }
 
 .fini-dash-action-grid {
@@ -1701,27 +1725,34 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 320px;
+  min-height: 420px;
   position: relative;
 }
 
 .fini-dash-home-mascot-art {
-  width: min(100%, 520px);
+  width: min(100%, 560px);
   height: auto;
 }
 
-.fini-dash-home-mascot-text {
+.fini-dash-home-mascot-count {
   position: absolute;
-  top: 10%;
-  left: 9%;
-  width: 54%;
+  top: 21%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   pointer-events: none;
 }
 
-.fini-dash-home-mascot-text .fini-lama-greeting-text {
-  font-size: 15px;
-  line-height: 1.75;
-  color: #8f6d78;
+.fini-dash-home-mascot-count span {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(44px, 6vw, 84px);
+  line-height: 0.95;
+  font-weight: 600;
+  color: #6f4d36;
 }
 
 .fini-dash-top-row {
@@ -2410,19 +2441,34 @@
     border-radius: 24px;
   }
 
+  .fini-dash-home-copy .fini-dash-title {
+    font-size: 34px;
+  }
+
+  .fini-dash-home-copy .fini-dash-sub {
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
   .fini-dash-pan-metrics {
     grid-template-columns: 1fr;
   }
 
-  .fini-dash-home-mascot-text {
-    top: 8%;
-    left: 8%;
-    width: 58%;
+  .fini-dash-home-mascot-shell {
+    min-height: 340px;
   }
 
-  .fini-dash-home-mascot-text .fini-lama-greeting-text {
-    font-size: 14px;
-    line-height: 1.65;
+  .fini-dash-home-mascot-art {
+    width: min(100%, 460px);
+  }
+
+  .fini-dash-home-mascot-count {
+    top: 20%;
+    width: 34%;
+  }
+
+  .fini-dash-home-mascot-count span {
+    font-size: clamp(38px, 8vw, 64px);
   }
 
   .fini-makeup-log-image,
