@@ -1453,6 +1453,21 @@
   background: rgba(255,255,255,0.95);
 }
 
+.fini-field-textarea {
+  width: 100%;
+  padding: 13px 16px;
+  background: rgba(255,255,255,0.95);
+  border: 1px solid #dfd2c5;
+  border-radius: 18px;
+  font-size: 14px;
+  font-family: 'Noto Sans TC', sans-serif;
+  color: #1A1218;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
 .fini-login-back,
 .fini-login-footer {
   color: #a38e7d;
@@ -1611,6 +1626,217 @@
   border: 1px solid #ead9c8;
   border-radius: 24px;
   padding: 16px 18px;
+}
+
+.fini-dash-home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.fini-dash-home-copy,
+.fini-dash-home-mascot-card {
+  border: 1px solid #e8ddcf;
+  border-radius: 30px;
+  background: linear-gradient(180deg, rgba(255, 253, 248, 0.96) 0%, rgba(250, 244, 236, 0.94) 100%);
+  box-shadow: 0 18px 40px rgba(126, 101, 79, 0.06);
+}
+
+.fini-dash-home-copy {
+  padding: 28px;
+}
+
+.fini-dash-action-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.fini-dash-quick-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 148px;
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #eadfd2;
+  color: #2f2620;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fini-dash-quick-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(126, 101, 79, 0.08);
+}
+
+.fini-dash-quick-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: #f3e7da;
+  color: #8a6a52;
+}
+
+.fini-dash-quick-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.fini-dash-quick-body {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #7b6759;
+}
+
+.fini-dash-home-mascot {
+  display: flex;
+}
+
+.fini-dash-home-mascot-card {
+  width: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+
+.fini-dash-home-bubble {
+  width: 100%;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid #eadfd2;
+  padding: 18px;
+}
+
+.fini-dash-makeup-card {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.fini-dash-makeup-thumb-image,
+.fini-dash-makeup-thumb-empty {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 24px;
+  overflow: hidden;
+  object-fit: cover;
+  background: #f7efe7;
+}
+
+.fini-dash-makeup-thumb-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fini-dash-tag-row,
+.fini-makeup-log-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fini-dash-tag,
+.fini-makeup-log-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #f3e7da;
+  color: #7a5e47;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.fini-makeup-upload {
+  display: block;
+  cursor: pointer;
+}
+
+.fini-makeup-upload-image,
+.fini-makeup-upload-placeholder {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 26px;
+  overflow: hidden;
+}
+
+.fini-makeup-upload-image {
+  object-fit: cover;
+}
+
+.fini-makeup-upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px dashed #dfd2c5;
+  background: linear-gradient(180deg, #fffefb 0%, #faf4ec 100%);
+  color: #8d786b;
+}
+
+.fini-makeup-product-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.fini-makeup-product-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #dfd2c5;
+  background: rgba(255, 255, 255, 0.92);
+  color: #6f5a4f;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.fini-makeup-product-pill.is-active {
+  border-color: #c9ab8d;
+  background: #f3e7da;
+  color: #6c503b;
+}
+
+.fini-makeup-log-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid #eadfd2;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.fini-makeup-log-image,
+.fini-makeup-log-image-empty {
+  width: 112px;
+  height: 112px;
+  border-radius: 20px;
+  object-fit: cover;
+  background: #f7efe7;
+}
+
+.fini-makeup-log-image-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .fini-section-panel {
@@ -1986,6 +2212,22 @@
     grid-template-columns: 1fr;
   }
 
+  .fini-dash-home-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .fini-dash-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fini-dash-makeup-card {
+    grid-template-columns: 1fr;
+  }
+
+  .fini-makeup-log-row {
+    grid-template-columns: 1fr;
+  }
+
   .fini-home {
     grid-template-columns: 1fr;
     padding-top: 36px;
@@ -2125,6 +2367,19 @@
   .fini-auth-card {
     padding: 22px 18px;
     border-radius: 24px;
+  }
+
+  .fini-dash-home-copy,
+  .fini-dash-home-mascot-card {
+    padding: 20px;
+    border-radius: 24px;
+  }
+
+  .fini-makeup-log-image,
+  .fini-makeup-log-image-empty {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
   }
 
   .fini-reset-card {

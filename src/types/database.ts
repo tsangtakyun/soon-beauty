@@ -102,6 +102,26 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['products']['Insert']>;
       };
+      recent_makeup_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string | null;
+          notes: string | null;
+          selfie_url: string | null;
+          used_product_ids: string[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title?: string | null;
+          notes?: string | null;
+          selfie_url?: string | null;
+          used_product_ids?: string[];
+        };
+        Update: Partial<Database['public']['Tables']['recent_makeup_logs']['Insert']>;
+      };
     };
     Views: {
       products_with_expiry: {
@@ -153,6 +173,7 @@ export type Product = Database['public']['Tables']['products']['Row'];
 export type ProductWithExpiry = Database['public']['Views']['products_with_expiry']['Row'];
 export type Category = Database['public']['Tables']['categories']['Row'];
 export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type RecentMakeupLog = Database['public']['Tables']['recent_makeup_logs']['Row'];
 export type ProductLog = {
   id: string;
   user_id: string;
