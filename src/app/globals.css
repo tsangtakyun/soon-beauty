@@ -1736,7 +1736,7 @@
 
 .fini-dash-home-mascot-count {
   position: absolute;
-  top: 21%;
+  top: 25%;
   left: 50%;
   transform: translateX(-50%);
   width: 32%;
@@ -1749,7 +1749,7 @@
 
 .fini-dash-home-mascot-count span {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: clamp(44px, 6vw, 84px);
+  font-size: clamp(35px, 4.8vw, 67px);
   line-height: 0.95;
   font-weight: 600;
   color: #6f4d36;
@@ -2463,12 +2463,12 @@
   }
 
   .fini-dash-home-mascot-count {
-    top: 20%;
+    top: 23%;
     width: 34%;
   }
 
   .fini-dash-home-mascot-count span {
-    font-size: clamp(38px, 8vw, 64px);
+    font-size: clamp(30px, 6.4vw, 51px);
   }
 
   .fini-makeup-log-image,
