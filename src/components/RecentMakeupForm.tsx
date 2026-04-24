@@ -26,15 +26,38 @@ type LogPreview = RecentMakeupLog & {
 
 async function uploadSelfie(file: File, userId: string) {
   const supabase = createClient();
-  const ext = file.name.split('.').pop() || 'jpg';
-  const filename = `${userId}/makeup/${Date.now()}-${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from('product-photos').upload(filename, file, {
-    contentType: file.type || 'image/jpeg',
+  const compressed = await compressImage(file, { maxDimension: 1600, quality: 0.9 });
+  const filename = `${userId}/makeup/${Date.now()}-${crypto.randomUUID()}.jpg`;
+  const imageBuffer = Uint8Array.from(atob(compressed.base64), (char) => char.charCodeAt(0));
+  const { error } = await supabase.storage.from('product-photos').upload(filename, imageBuffer, {
+    contentType: 'image/jpeg',
+    upsert: true,
   });
 
   if (error) throw error;
   const { data } = supabase.storage.from('product-photos').getPublicUrl(filename);
   return data.publicUrl;
+}
+
+async function getShareImagePayload(file: File | null, selfieUrl: string | null) {
+  if (file) {
+    return await compressImage(file, { maxDimension: 1400, quality: 0.86 });
+  }
+
+  if (!selfieUrl) return null;
+
+  const response = await fetch(selfieUrl);
+  if (!response.ok) {
+    throw new Error('未能讀取自拍圖片');
+  }
+
+  const blob = await response.blob();
+  const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
+  const fetchedFile = new File([blob], `share-source.${ext}`, {
+    type: blob.type || 'image/jpeg',
+  });
+
+  return await compressImage(fetchedFile, { maxDimension: 1400, quality: 0.86 });
 }
 
 export default function RecentMakeupForm({ products, logs, categories, profile }: RecentMakeupFormProps) {
@@ -231,6 +254,8 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
     setGeneratedShareUrl(null);
 
     try {
+      const shareImage = await getShareImagePayload(file, logs[0]?.selfie_url ?? null);
+
       const response = await fetch('/api/recent-makeup/generate-share', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -239,7 +264,7 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
           title: title.trim() || null,
           notes: notes.trim() || null,
           selfieUrl: logs[0]?.selfie_url ?? null,
-          ...(file ? await compressImage(file, { maxDimension: 1400, quality: 0.86 }) : {}),
+          ...(shareImage ?? {}),
           selectedProducts: selectedProductObjects.map((product) => ({
             name: product.name,
             brand: product.brand,
