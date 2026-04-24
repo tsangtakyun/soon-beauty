@@ -16,10 +16,13 @@ export default async function CalendarPage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div>
+      <section className="fini-page-hero fini-page-hero-compact">
+        <div className="fini-page-hero-copy">
+          <p className="fini-section-kicker">Daily Ritual</p>
         <h1 className="fini-dash-title">使用日曆</h1>
         <p className="fini-dash-sub">記錄每日用過的產品，追蹤使用習慣。</p>
-      </div>
+        </div>
+      </section>
       <CalendarClient products={(products as Product[] | null) ?? []} />
     </div>
   );

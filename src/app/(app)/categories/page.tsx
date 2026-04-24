@@ -27,12 +27,15 @@ export default async function CategoriesPage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div>
+      <section className="fini-page-hero fini-page-hero-compact">
+        <div className="fini-page-hero-copy">
+          <p className="fini-section-kicker">Organize Your Library</p>
         <h1 className="font-display text-heading text-ink-900">分類</h1>
-        <p className="text-caption text-ink-500 mt-1">
+        <p className="fini-dash-sub mt-1">
           自訂分類同色系，令產品list更加一目了然。
         </p>
-      </div>
+        </div>
+      </section>
 
       <CategoryManager
         initialCategories={(categories as Category[]) ?? []}

@@ -63,13 +63,12 @@ export default function CalendarClient({ products }: { products: Product[] }) {
 
   return (
     <div className="space-y-5">
-
-      {/* Month navigator */}
+      <div className="fini-section-panel">
       <div className="flex items-center justify-between">
         <button
           onClick={() => setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1))}
           className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-          style={{ background: '#F0E4E8', color: '#7A5060' }}
+          style={{ background: '#F3E7DA', color: '#7A5E47' }}
         >
           <ChevronLeft style={{ width: 16, height: 16 }} />
         </button>
@@ -81,24 +80,21 @@ export default function CalendarClient({ products }: { products: Product[] }) {
         <button
           onClick={() => setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1))}
           className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-          style={{ background: '#F0E4E8', color: '#7A5060' }}
+          style={{ background: '#F3E7DA', color: '#7A5E47' }}
         >
           <ChevronRight style={{ width: 16, height: 16 }} />
         </button>
       </div>
 
-      {/* Calendar grid */}
-      <div className="card overflow-hidden">
-        {/* Weekday headers */}
-        <div className="grid grid-cols-7 border-b" style={{ borderColor: '#E0D4D8' }}>
+      <div className="overflow-hidden rounded-[26px] border mt-4" style={{ borderColor: '#E8DDCF', background: 'linear-gradient(180deg, #fffefb 0%, #faf4ec 100%)' }}>
+        <div className="grid grid-cols-7 border-b" style={{ borderColor: '#E8DDCF' }}>
           {WEEKDAYS.map((d) => (
-            <div key={d} className="text-center py-2 text-micro font-medium" style={{ color: '#9A7080' }}>
+            <div key={d} className="text-center py-2 text-micro font-medium" style={{ color: '#8D786B' }}>
               {d}
             </div>
           ))}
         </div>
 
-        {/* Day cells */}
         <div className="grid grid-cols-7">
           {days.map((day, i) => {
             const dayStr   = format(day, 'yyyy-MM-dd');
@@ -113,22 +109,22 @@ export default function CalendarClient({ products }: { products: Product[] }) {
                 onClick={() => setSelectedDate(day)}
                 className="relative flex flex-col items-center py-2 transition-colors"
                 style={{
-                  borderRight: (i + 1) % 7 !== 0 ? '0.5px solid #F0E4E8' : undefined,
-                  borderBottom: i < days.length - 7 ? '0.5px solid #F0E4E8' : undefined,
-                  background: isSelected ? '#B06070' : todayDay ? '#FDF0F4' : undefined,
+                  borderRight: (i + 1) % 7 !== 0 ? '0.5px solid #F1E8DE' : undefined,
+                  borderBottom: i < days.length - 7 ? '0.5px solid #F1E8DE' : undefined,
+                  background: isSelected ? '#8A6A52' : todayDay ? '#F8F1E8' : undefined,
                   opacity: inMonth ? 1 : 0.3,
                 }}
               >
                 <span
                   className="text-caption font-medium"
-                  style={{ color: isSelected ? 'white' : todayDay ? '#B06070' : '#1A1218' }}
+                  style={{ color: isSelected ? 'white' : todayDay ? '#8A6A52' : '#2F2620' }}
                 >
                   {format(day, 'd')}
                 </span>
                 {hasLog && !isSelected && (
                   <span
                     className="mt-0.5 rounded-full"
-                    style={{ width: 4, height: 4, background: '#B06070' }}
+                    style={{ width: 4, height: 4, background: '#8A6A52' }}
                   />
                 )}
                 {isSelected && hasLog && (
@@ -142,22 +138,22 @@ export default function CalendarClient({ products }: { products: Product[] }) {
           })}
         </div>
       </div>
+      </div>
 
-      {/* Selected date product list */}
       {selectedDate && (
-        <section className="space-y-3">
+        <section className="space-y-3 fini-section-panel">
           <div className="flex items-center justify-between">
             <h3 className="fini-section-title" style={{ fontSize: 16 }}>
               {format(selectedDate, 'M月d日', { locale: zhHK })} 用過的產品
             </h3>
-            <span className="text-micro" style={{ color: '#9A7080' }}>
+            <span className="text-micro" style={{ color: '#8D786B' }}>
               {loggedProductIds.size} / {activeProducts.length} 件
             </span>
           </div>
 
           {activeProducts.length === 0 ? (
-            <div className="card p-6 text-center">
-              <p className="text-caption" style={{ color: '#9A7080' }}>
+            <div className="fini-empty-state p-6 text-center">
+              <p className="text-caption" style={{ color: '#8D786B' }}>
                 尚未有使用中的產品，請先新增產品。
               </p>
             </div>
@@ -171,22 +167,22 @@ export default function CalendarClient({ products }: { products: Product[] }) {
                     key={p.id}
                     onClick={() => toggleLog(p.id)}
                     disabled={isToggling}
-                    className="card w-full p-3 flex items-center gap-3 transition-all text-left"
+                    className="fini-product-row w-full text-left"
                     style={{
-                      background: logged ? '#F0FAF4' : undefined,
-                      borderColor: logged ? '#B8DEC4' : undefined,
+                      background: logged ? '#EEF3EA' : undefined,
+                      borderColor: logged ? '#D7E1D1' : undefined,
                       opacity: isToggling ? 0.6 : 1,
                     }}
                   >
                     {/* Thumbnail */}
                     {p.photo_url ? (
                       <img src={p.photo_url} alt={p.name}
-                        className="flex-shrink-0 rounded object-cover"
-                        style={{ width: 40, height: 40 }} />
+                        className="flex-shrink-0 rounded-[16px] object-cover"
+                        style={{ width: 44, height: 44 }} />
                     ) : (
                       <div
-                        className="flex-shrink-0 rounded flex items-center justify-center font-display"
-                        style={{ width: 40, height: 40, background: '#E8E0E4', color: '#5A4050', fontSize: 16 }}
+                        className="flex-shrink-0 rounded-[16px] flex items-center justify-center font-display"
+                        style={{ width: 44, height: 44, background: '#E8E0E4', color: '#5A4050', fontSize: 16 }}
                       >
                         {p.name.slice(0, 1)}
                       </div>
@@ -194,10 +190,10 @@ export default function CalendarClient({ products }: { products: Product[] }) {
 
                     {/* Info */}
                     <div className="min-w-0 flex-1">
-                      <div className="text-caption font-medium truncate" style={{ color: '#1A1218' }}>
+                      <div className="text-caption font-medium truncate" style={{ color: '#2F2620' }}>
                         {p.name}
                       </div>
-                      <div className="text-micro truncate" style={{ color: '#9A7080' }}>
+                      <div className="text-micro truncate" style={{ color: '#8D786B' }}>
                         {p.brand ?? '—'}
                       </div>
                     </div>
@@ -206,8 +202,8 @@ export default function CalendarClient({ products }: { products: Product[] }) {
                     <div
                       className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all"
                       style={{
-                        background: logged ? '#2E7A4A' : '#F0E4E8',
-                        color: logged ? 'white' : '#C8B4BC',
+                        background: logged ? '#66806A' : '#F3E7DA',
+                        color: logged ? 'white' : '#B79C86',
                       }}
                     >
                       {logged
@@ -223,21 +219,20 @@ export default function CalendarClient({ products }: { products: Product[] }) {
         </section>
       )}
 
-      {/* Monthly summary */}
-      <section className="card p-4 space-y-2">
-        <h3 style={{ fontSize: 13, fontWeight: 500, color: '#1A1218', margin: 0 }}>本月統計</h3>
+      <section className="fini-section-panel p-4 space-y-2">
+        <h3 style={{ fontSize: 13, fontWeight: 500, color: '#2F2620', margin: 0 }}>本月統計</h3>
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded p-3" style={{ background: '#F0EAF4' }}>
-            <div style={{ fontSize: 24, fontWeight: 500, color: '#7A5090', fontFamily: "'Cormorant Garamond', serif" }}>
+          <div className="rounded-[20px] p-3" style={{ background: '#F8F1E8' }}>
+            <div style={{ fontSize: 24, fontWeight: 500, color: '#8A6A52', fontFamily: "'Cormorant Garamond', serif" }}>
               {daysWithLogs.size}
             </div>
-            <div className="text-micro" style={{ color: '#7A5090', opacity: 0.75 }}>有記錄的日子</div>
+            <div className="text-micro" style={{ color: '#8A6A52', opacity: 0.75 }}>有記錄的日子</div>
           </div>
-          <div className="rounded p-3" style={{ background: '#E8F4EC' }}>
-            <div style={{ fontSize: 24, fontWeight: 500, color: '#2E7A4A', fontFamily: "'Cormorant Garamond', serif" }}>
+          <div className="rounded-[20px] p-3" style={{ background: '#EEF3EA' }}>
+            <div style={{ fontSize: 24, fontWeight: 500, color: '#66806A', fontFamily: "'Cormorant Garamond', serif" }}>
               {logs.length}
             </div>
-            <div className="text-micro" style={{ color: '#2E7A4A', opacity: 0.75 }}>總使用記錄</div>
+            <div className="text-micro" style={{ color: '#66806A', opacity: 0.75 }}>總使用記錄</div>
           </div>
         </div>
       </section>

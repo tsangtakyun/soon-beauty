@@ -82,7 +82,7 @@ export default function CategoryManager({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {categories.map((c) => (
         <CategoryRow
           key={c.id}
@@ -104,7 +104,8 @@ export default function CategoryManager({
       ) : (
         <button
           onClick={() => setIsAdding(true)}
-          className="card p-4 w-full flex items-center justify-center gap-2 text-ink-500 hover:text-brand-600 hover:border-brand-200 border-dashed border-2 border-ink-200 transition-colors"
+          className="fini-empty-state p-4 w-full flex items-center justify-center gap-2 transition-colors"
+          style={{ color: '#7A6656' }}
         >
           <Plus className="w-4 h-4" />
           <span className="text-caption">加新分類</span>
@@ -143,26 +144,27 @@ function CategoryRow({
   }
 
   return (
-    <div className="card p-4 flex items-center justify-between">
+    <div className="fini-product-row">
       <div className="flex items-center gap-3 min-w-0">
         <div
-          className="w-8 h-8 rounded flex-shrink-0"
+          className="w-10 h-10 rounded-[16px] flex-shrink-0"
           style={{ backgroundColor: category.color }}
         />
         <div className="min-w-0">
-          <div className="text-body font-medium text-ink-900">{category.name}</div>
-          <div className="text-micro text-ink-500">
+          <div className="text-body font-medium" style={{ color: '#2F2620' }}>{category.name}</div>
+          <div className="text-micro" style={{ color: '#8D786B' }}>
             {count} 件產品
           </div>
         </div>
       </div>
       <div className="flex gap-1 flex-shrink-0">
-        <button onClick={onEdit} className="btn-ghost p-2">
+        <button onClick={onEdit} className="btn-ghost p-2" style={{ color: '#7A6656' }}>
           <Pencil className="w-4 h-4" />
         </button>
         <button
           onClick={onDelete}
-          className="btn-ghost p-2 text-status-expired hover:bg-red-50"
+          className="btn-ghost p-2 hover:bg-red-50"
+          style={{ color: '#B95E5E' }}
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -186,10 +188,10 @@ function CategoryEditRow({
   const [color, setColor] = useState(initialColor);
 
   return (
-    <div className="card p-4 space-y-3">
+    <div className="fini-section-panel p-4 space-y-3">
       <div className="flex items-center gap-3">
         <div
-          className="w-8 h-8 rounded flex-shrink-0"
+          className="w-10 h-10 rounded-[16px] flex-shrink-0"
           style={{ backgroundColor: color }}
         />
         <input
@@ -208,7 +210,7 @@ function CategoryEditRow({
             key={c}
             onClick={() => setColor(c)}
             className={`aspect-square rounded transition-transform ${
-              color === c ? 'ring-2 ring-ink-900 ring-offset-1 scale-110' : 'hover:scale-105'
+              color === c ? 'ring-2 ring-offset-1 scale-110' : 'hover:scale-105'
             }`}
             style={{ backgroundColor: c }}
             aria-label={`選擇顏色 ${c}`}

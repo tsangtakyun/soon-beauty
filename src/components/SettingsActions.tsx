@@ -15,7 +15,7 @@ export default function SettingsActions() {
   }
 
   return (
-    <button onClick={handleLogout} className="btn-secondary w-full">
+    <button onClick={handleLogout} className="btn-secondary w-full" style={{ borderColor: '#E7D8CA', color: '#6E594B' }}>
       <LogOut className="w-4 h-4 mr-2" />
       登出
     </button>
