@@ -38,9 +38,9 @@ export default function HomePage() {
         <div className="fini-home-copy">
           <p className="fini-home-kicker">溫柔整理你的美容日常</p>
           <h1 className="fini-home-title">
-            為每一件護膚與彩妝，
+            讓護膚與彩妝，
             <br />
-            留下清楚而安靜的位置。
+            各自安放。
           </h1>
           <p className="fini-home-body">
             Neaty Beauty 以更柔和的方式整理產品、記錄使用習慣，並保存屬於你的色彩與美容筆記。
@@ -55,18 +55,11 @@ export default function HomePage() {
 
         <div className="fini-home-visual">
           <div className="fini-home-artboard">
-            <div className="fini-home-shelf" />
-            <div className="fini-home-props">
-              <span className="fini-home-vase" />
-              <span className="fini-home-dropper" />
-              <span className="fini-home-jar" />
-            </div>
             <Image
-              src="/lama.svg"
-              alt="Neaty Beauty 的品牌貓咪主視覺"
-              width={360}
-              height={420}
-              className="fini-home-cat"
+              src="/home-cat-reference.png"
+              alt="Neaty Beauty 首頁主視覺"
+              fill
+              className="fini-home-cat-image"
               priority
             />
           </div>
