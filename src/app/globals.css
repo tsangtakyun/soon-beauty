@@ -1698,49 +1698,15 @@
 }
 
 .fini-dash-home-mascot-shell {
-  position: relative;
-  min-height: 300px;
-}
-
-.fini-dash-home-mascot-card {
-  width: 100%;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  gap: 18px;
-}
-
-.fini-dash-home-mascot-card-peek {
-  position: relative;
-  justify-content: flex-end;
-  align-items: stretch;
-  min-height: 300px;
-  overflow: hidden;
-}
-
-.fini-dash-home-peek-wrap {
   display: flex;
   justify-content: center;
-  align-items: flex-end;
-  min-height: 280px;
+  align-items: center;
+  min-height: 320px;
 }
 
-.fini-dash-home-bubble {
-  width: 100%;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid #eadfd2;
-  padding: 18px;
-}
-
-.fini-dash-home-bubble-floating {
-  position: absolute;
-  top: 10px;
-  left: 0;
-  right: 0;
-  z-index: 1;
+.fini-dash-home-mascot-art {
+  width: min(100%, 520px);
+  height: auto;
 }
 
 .fini-dash-top-row {
@@ -2427,10 +2393,6 @@
   .fini-dash-home-mascot-card {
     padding: 20px;
     border-radius: 24px;
-  }
-
-  .fini-dash-home-bubble-floating {
-    position: static;
   }
 
   .fini-dash-pan-metrics {

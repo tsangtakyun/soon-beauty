@@ -5,32 +5,6 @@ import { createClient } from '@/lib/supabase/server';
 import { formatDaysLabel, getExpiryStatus, STATUS_COLORS } from '@/lib/utils';
 import type { Product, ProductWithExpiry, RecentMakeupLog } from '@/types/database';
 
-function getCaretakerMessage({
-  expiredCount,
-  expiringCount,
-  newProductsCount,
-  watchlistCount,
-}: {
-  expiredCount: number;
-  expiringCount: number;
-  newProductsCount: number;
-  watchlistCount: number;
-}) {
-  if (expiredCount > 0) {
-    return `有 ${expiredCount} 件產品已經過期，建議你今日先處理佢哋。`;
-  }
-  if (expiringCount > 0) {
-    return `有 ${expiringCount} 件產品快到期，記得優先用返佢哋。`;
-  }
-  if (watchlistCount > 0) {
-    return `鐵皮清單而家有 ${watchlistCount} 件產品，今個月慢慢推進就啱。`;
-  }
-  if (newProductsCount > 0) {
-    return `最近新增咗 ${newProductsCount} 件產品，記得為佢哋補齊分類同使用狀態。`;
-  }
-  return '而家收藏狀態幾整齊，可以慢慢檢查今日想用邊幾件。';
-}
-
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -111,13 +85,6 @@ export default async function DashboardPage() {
     ? allProducts.filter((product) => recentMakeup.used_product_ids.includes(product.id))
     : [];
 
-  const caretakerMessage = getCaretakerMessage({
-    expiredCount: stats.expired_count ?? 0,
-    expiringCount: stats.expiring_soon_count ?? 0,
-    newProductsCount: latestAddedThisWeek.length,
-    watchlistCount: activeWatchlistCount,
-  });
-
   return (
     <div className="space-y-6 animate-fade-in">
       <section className="fini-dash-home-hero">
@@ -133,12 +100,14 @@ export default async function DashboardPage() {
 
       <div className="fini-dash-top-row">
         <section className="fini-dash-home-mascot-shell">
-          <div className="fini-dash-home-bubble fini-dash-home-bubble-floating">
-            <p className="fini-lama-greeting-text">{caretakerMessage}</p>
-          </div>
-          <div className="fini-dash-home-peek-wrap">
-            <Image src="/brand/cat-peek.png" alt="Neaty Beauty 管家貓咪" width={320} height={190} />
-          </div>
+          <Image
+            src="/brand/dashboard-mascot-bubble.png"
+            alt="Neaty Beauty 管家貓咪與提示插畫"
+            width={720}
+            height={520}
+            className="fini-dash-home-mascot-art"
+            priority
+          />
         </section>
 
         <section className="fini-section-panel">
