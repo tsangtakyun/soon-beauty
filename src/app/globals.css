@@ -1600,12 +1600,177 @@
   background: linear-gradient(180deg, #fffefb 0%, #faf4ec 100%);
 }
 
+.fini-home {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.92fr);
+  gap: 36px;
+  align-items: center;
+  padding: 52px 40px 28px;
+}
+
+.fini-home-copy {
+  max-width: 620px;
+}
+
+.fini-home-kicker {
+  margin: 0 0 14px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #9e836d;
+}
+
+.fini-home-title {
+  margin: 0;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(3rem, 5vw, 5.1rem);
+  line-height: 1.02;
+  font-weight: 500;
+  color: #30261f;
+}
+
+.fini-home-body {
+  max-width: 560px;
+  margin: 20px 0 0;
+  font-size: 16px;
+  line-height: 1.95;
+  color: #6f5d51;
+}
+
+.fini-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.fini-home-visual {
+  display: flex;
+  justify-content: center;
+}
+
+.fini-home-artboard {
+  position: relative;
+  width: 100%;
+  min-height: 520px;
+  border-radius: 34px;
+  border: 1px solid #eadfd2;
+  background: linear-gradient(180deg, #fffefb 0%, #f8f2ea 100%);
+  box-shadow: 0 24px 60px rgba(126, 101, 79, 0.08);
+  overflow: hidden;
+}
+
+.fini-home-shelf {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 84px;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #dec3a5 0%, #c6a27f 100%);
+  box-shadow: 0 10px 20px rgba(138, 106, 82, 0.16);
+}
+
+.fini-home-props {
+  position: absolute;
+  right: 16%;
+  bottom: 110px;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.fini-home-vase,
+.fini-home-dropper,
+.fini-home-jar {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(124, 105, 88, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.42);
+}
+
+.fini-home-vase {
+  width: 38px;
+  height: 92px;
+  border-radius: 18px 18px 12px 12px;
+}
+
+.fini-home-dropper {
+  width: 30px;
+  height: 74px;
+  border-radius: 14px 14px 10px 10px;
+}
+
+.fini-home-jar {
+  width: 42px;
+  height: 34px;
+  border-radius: 12px;
+}
+
+.fini-home-cat {
+  position: absolute;
+  left: 10%;
+  bottom: 54px;
+  width: min(56%, 320px);
+  height: auto;
+  filter: drop-shadow(0 10px 18px rgba(118, 95, 78, 0.1));
+}
+
+.fini-home-features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0 40px 34px;
+}
+
+.fini-home-feature-card {
+  border: 1px solid #eadfd2;
+  border-radius: 28px;
+  padding: 22px 20px;
+  background: rgba(255, 252, 247, 0.88);
+  box-shadow: 0 16px 36px rgba(126, 101, 79, 0.05);
+}
+
+.fini-home-feature-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f2e6da;
+  color: #8a6a52;
+}
+
+.fini-home-feature-title {
+  margin: 14px 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2f2620;
+}
+
+.fini-home-feature-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.85;
+  color: #776457;
+}
+
 @media (max-width: 900px) {
   .fini-moodboard {
     grid-template-columns: 1fr;
   }
 
   .fini-page-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .fini-home {
+    grid-template-columns: 1fr;
+    padding-top: 36px;
+  }
+
+  .fini-home-features {
     grid-template-columns: 1fr;
   }
 }
@@ -1696,5 +1861,41 @@
   .fini-section-panel {
     padding: 16px;
     border-radius: 24px;
+  }
+
+  .fini-home {
+    gap: 24px;
+    padding: 30px 20px 20px;
+  }
+
+  .fini-home-body {
+    font-size: 15px;
+  }
+
+  .fini-home-artboard {
+    min-height: 400px;
+    border-radius: 28px;
+  }
+
+  .fini-home-shelf {
+    left: 8%;
+    right: 8%;
+    bottom: 70px;
+  }
+
+  .fini-home-props {
+    right: 12%;
+    bottom: 92px;
+    gap: 10px;
+  }
+
+  .fini-home-cat {
+    left: 8%;
+    bottom: 42px;
+    width: min(58%, 250px);
+  }
+
+  .fini-home-features {
+    padding: 0 20px 26px;
   }
 }
