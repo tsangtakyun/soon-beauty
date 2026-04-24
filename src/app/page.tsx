@@ -74,64 +74,14 @@ export default function HomePage() {
 
         <div className="fini-home-visual">
           <div className="fini-home-artboard">
-            <span className="fini-home-doodle fini-home-doodle-paw">
-              <Image src="/brand/paw-doodle.png" alt="" fill sizes="72px" />
-            </span>
-            <span className="fini-home-doodle fini-home-doodle-heart">
-              <Image src="/brand/heart-doodle.png" alt="" fill sizes="48px" />
-            </span>
-
-            <div className="fini-home-scene">
-              <div className="fini-home-cat-asset">
-                <Image
-                  src="/brand/cat-sit-hero.png"
-                  alt="坐在木架上的手繪貓咪插畫"
-                  fill
-                  sizes="(max-width: 900px) 280px, 420px"
-                  className="fini-home-object"
-                />
-              </div>
-
-              <div className="fini-home-shelf-asset">
-                <Image
-                  src="/brand/wood-shelf-hero.png"
-                  alt=""
-                  fill
-                  sizes="(max-width: 900px) 360px, 520px"
-                  className="fini-home-object"
-                />
-              </div>
-
-              <div className="fini-home-vase-asset">
-                <Image
-                  src="/brand/glass-vase.png"
-                  alt="玻璃花瓶插畫"
-                  fill
-                  sizes="120px"
-                  className="fini-home-object"
-                />
-              </div>
-
-              <div className="fini-home-serum-asset">
-                <Image
-                  src="/brand/serum-bottle.png"
-                  alt="精華瓶插畫"
-                  fill
-                  sizes="110px"
-                  className="fini-home-object"
-                />
-              </div>
-
-              <div className="fini-home-jar-asset">
-                <Image
-                  src="/brand/cream-jar.png"
-                  alt="面霜罐插畫"
-                  fill
-                  sizes="110px"
-                  className="fini-home-object"
-                />
-              </div>
-            </div>
+            <Image
+              src="/brand/home-hero-art.png"
+              alt="Neaty Beauty 首頁主視覺插畫"
+              fill
+              sizes="(max-width: 900px) 100vw, 46vw"
+              className="fini-home-hero-image"
+              priority
+            />
           </div>
         </div>
       </section>

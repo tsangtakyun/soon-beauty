@@ -1692,81 +1692,10 @@
   overflow: hidden;
 }
 
-.fini-home-scene {
-  position: absolute;
-  inset: 0;
-}
-
-.fini-home-object {
+.fini-home-hero-image {
   object-fit: contain;
-}
-
-.fini-home-doodle {
-  position: absolute;
-  opacity: 0.32;
-  pointer-events: none;
-}
-
-.fini-home-doodle-paw {
-  width: 74px;
-  height: 74px;
-  top: 64px;
-  right: 86px;
-}
-
-.fini-home-doodle-heart {
-  width: 42px;
-  height: 42px;
-  top: 182px;
-  left: 90px;
-}
-
-.fini-home-cat-asset,
-.fini-home-shelf-asset,
-.fini-home-vase-asset,
-.fini-home-serum-asset,
-.fini-home-jar-asset {
-  position: absolute;
-}
-
-.fini-home-cat-asset {
-  width: min(58%, 340px);
-  height: min(72%, 390px);
-  right: 20%;
-  bottom: 72px;
-  z-index: 3;
-}
-
-.fini-home-shelf-asset {
-  width: min(82%, 480px);
-  height: 118px;
-  right: 7%;
-  bottom: 40px;
-  z-index: 1;
-}
-
-.fini-home-vase-asset {
-  width: min(17%, 88px);
-  height: min(34%, 180px);
-  right: 22%;
-  bottom: 108px;
-  z-index: 2;
-}
-
-.fini-home-serum-asset {
-  width: min(14%, 74px);
-  height: min(28%, 148px);
-  right: 12%;
-  bottom: 104px;
-  z-index: 2;
-}
-
-.fini-home-jar-asset {
-  width: min(15%, 82px);
-  height: min(19%, 94px);
-  right: 3%;
-  bottom: 100px;
-  z-index: 2;
+  object-position: center;
+  padding: 30px;
 }
 
 .fini-home-features {
@@ -1930,48 +1859,8 @@
     border-radius: 28px;
   }
 
-  .fini-home-doodle-paw {
-    top: 42px;
-    right: 44px;
-  }
-
-  .fini-home-doodle-heart {
-    left: 38px;
-    top: 132px;
-  }
-
-  .fini-home-cat-asset {
-    width: min(63%, 280px);
-    height: 300px;
-    right: 17%;
-    bottom: 64px;
-  }
-
-  .fini-home-shelf-asset {
-    width: min(88%, 360px);
-    bottom: 34px;
-    right: 4%;
-  }
-
-  .fini-home-vase-asset {
-    width: 68px;
-    height: 136px;
-    right: 21%;
-    bottom: 98px;
-  }
-
-  .fini-home-serum-asset {
-    width: 60px;
-    height: 120px;
-    right: 11%;
-    bottom: 96px;
-  }
-
-  .fini-home-jar-asset {
-    width: 62px;
-    height: 70px;
-    right: 3%;
-    bottom: 92px;
+  .fini-home-hero-image {
+    padding: 18px;
   }
 
   .fini-home-features {
