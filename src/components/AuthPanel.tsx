@@ -10,11 +10,13 @@ export type AuthMode = 'login' | 'signup';
 type AuthPanelProps = {
   compact?: boolean;
   initialMode?: AuthMode;
+  lockedMode?: AuthMode | null;
 };
 
 export default function AuthPanel({
   compact = false,
   initialMode = 'login',
+  lockedMode = null,
 }: AuthPanelProps) {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -32,6 +34,15 @@ export default function AuthPanel({
     setError(null);
     setNotice(null);
   }, [initialMode]);
+
+  useEffect(() => {
+    if (lockedMode) {
+      setMode(lockedMode);
+      setIsResetting(false);
+      setError(null);
+      setNotice(null);
+    }
+  }, [lockedMode]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -124,7 +135,18 @@ export default function AuthPanel({
         </div>
       )}
 
-      {!isResetting && (
+      {compact && !isResetting && (
+        <div className="fini-auth-card-head fini-auth-card-head-compact">
+          <p className="fini-auth-card-kicker">
+            {mode === 'login' ? '會員登入' : '建立帳戶'}
+          </p>
+          <h2 className="fini-auth-card-title fini-auth-card-title-compact">
+            {mode === 'login' ? '登入你的帳戶' : '開始建立你的帳戶'}
+          </h2>
+        </div>
+      )}
+
+      {!isResetting && !lockedMode && (
         <div className="fini-login-tabs">
           <button
             type="button"
@@ -250,6 +272,34 @@ export default function AuthPanel({
           }}
         >
           返回登入
+        </button>
+      )}
+
+      {compact && lockedMode === 'login' && !isResetting && (
+        <button
+          type="button"
+          className="fini-auth-text-link"
+          onClick={() => {
+            setMode('signup');
+            setError(null);
+            setNotice(null);
+          }}
+        >
+          還未建立帳戶？立即開始
+        </button>
+      )}
+
+      {compact && lockedMode === 'signup' && !isResetting && (
+        <button
+          type="button"
+          className="fini-auth-text-link"
+          onClick={() => {
+            setMode('login');
+            setError(null);
+            setNotice(null);
+          }}
+        >
+          已經是會員？立即登入
         </button>
       )}
     </div>

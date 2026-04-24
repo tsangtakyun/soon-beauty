@@ -43,7 +43,7 @@ export default function HomeAuthLauncher() {
 
       {open && (
         <div className="fini-home-inline-auth">
-          <AuthPanel compact initialMode={mode} />
+          <AuthPanel compact initialMode={mode} lockedMode={mode} />
         </div>
       )}
     </div>

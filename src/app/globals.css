@@ -1602,15 +1602,16 @@
 
 .fini-home {
   display: grid;
-  grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 0.78fr) minmax(320px, 0.92fr);
   gap: 3px;
   align-items: center;
   padding: 52px 40px 28px;
 }
 
 .fini-home-copy {
-  max-width: 620px;
-  justify-self: end;
+  max-width: 560px;
+  justify-self: start;
+  margin-left: -18px;
 }
 
 .fini-logo-with-mark {
@@ -1704,13 +1705,14 @@
 
 .fini-home-visual {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
 }
 
 .fini-home-artboard {
   position: relative;
   width: 100%;
+  max-width: 560px;
   min-height: 520px;
   background: transparent;
   overflow: hidden;
@@ -1755,6 +1757,10 @@
   margin-bottom: 24px;
 }
 
+.fini-auth-card-head-compact {
+  margin-bottom: 18px;
+}
+
 .fini-auth-card-kicker {
   margin: 0 0 10px;
   font-size: 12px;
@@ -1769,6 +1775,10 @@
   line-height: 1.1;
   font-weight: 500;
   color: #332a24;
+}
+
+.fini-auth-card-title-compact {
+  font-size: 28px;
 }
 
 .fini-auth-card-body {
@@ -1901,6 +1911,7 @@
 
   .fini-home-copy {
     justify-self: start;
+    margin-left: 0;
   }
 
   .fini-home-features {
