@@ -226,6 +226,12 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
   }
 
   async function handleGenerateShareImage() {
+    if (!premiumEnabled) {
+      setShareGenerateError('AI 妝容封面目前屬於 Premium 功能，你可以先升級後再使用。');
+      setGeneratedShareUrl(null);
+      return;
+    }
+
     setShareGenerating(true);
     setShareGenerateError(null);
     setGeneratedShareUrl(null);
@@ -336,7 +342,7 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
                   type="button"
                   className="fini-makeup-generate-button"
                   onClick={handleGenerateShareImage}
-                  disabled={shareGenerating || !premiumEnabled}
+                  disabled={shareGenerating}
                 >
                   {shareGenerating ? (
                     <>
@@ -346,7 +352,7 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
-                      {premiumEnabled ? '生成 AI 妝容封面' : '解鎖 AI 妝容封面'}
+                      生成 AI 妝容封面
                     </>
                   )}
                 </button>
@@ -362,7 +368,7 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
               <p className="fini-makeup-premium-hero-note">
                 {premiumEnabled
                   ? '你目前已可使用分享圖生成功能。'
-                  : '此功能可作為 Premium 方案內容，先吸引用戶解鎖。'}
+                  : '此功能目前屬於 Premium 方案內容，可用作升級解鎖的重點功能。'}
               </p>
             </div>
             <div className="fini-makeup-demo-card" aria-hidden="true">
