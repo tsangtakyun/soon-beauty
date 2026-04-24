@@ -1,11 +1,11 @@
-import type { Product, Profile } from '@/types/database';
+import type { Product } from '@/types/database';
 
 export type MakeupShareTemplate = {
-  id: 'soft-cover' | 'editorial-note' | 'product-sheet';
+  id: 'product-catalog' | 'annotated-breakdown';
   name: string;
   tagline: string;
   description: string;
-  orientation: 'portrait' | 'square';
+  orientation: 'portrait';
   tone: string;
   composition: string[];
   stylingKeywords: string[];
@@ -21,34 +21,24 @@ export type MakeupSharePromptInput = {
 
 export const MAKEUP_SHARE_TEMPLATES: MakeupShareTemplate[] = [
   {
-    id: 'soft-cover',
-    name: '柔光封面',
-    tagline: '像一本溫柔美容雜誌的封面',
-    description: '以自拍為主角，配合柔光留白與細緻標題，適合分享日常妝容。',
+    id: 'product-catalog',
+    name: '產品清單版',
+    tagline: '左邊自拍，右邊清楚列出今天用了什麼化妝品',
+    description: '以產品清單為主，最清楚呈現今次妝容使用的化妝品與重點。',
     orientation: 'portrait',
-    tone: '奶油紙感、柔和自然、帶少量編輯式留白',
-    composition: ['自拍作為主視覺', '產品名稱作為封面副標', '保留柔和紙本感背景'],
-    stylingKeywords: ['editorial beauty cover', 'soft daylight', 'cream paper texture', 'delicate typography'],
+    tone: '奶茶米白色系、高級留白、溫柔紙本感、清楚可讀',
+    composition: ['左邊是自拍主圖', '右邊是產品清單欄', '每項產品包含類別、品牌、產品名與一句短描述'],
+    stylingKeywords: ['beauty editorial catalog', 'cream beige palette', 'clean luxury layout', 'products used board'],
   },
   {
-    id: 'editorial-note',
-    name: '編輯手記',
-    tagline: '像雜誌內頁的妝容記事',
-    description: '同時呈現自拍、妝容重點與產品清單，更適合分享完整故事。',
+    id: 'annotated-breakdown',
+    name: '旁註解析版',
+    tagline: '用細線與小標註指出這次妝容各部位用了什麼產品',
+    description: '以自拍為主角，搭配臉部旁註與小字解析，更有妝容拆解感。',
     orientation: 'portrait',
-    tone: '內頁排版感、溫暖留白、文字層次分明',
-    composition: ['自拍與產品清單並置', '保留標題與短文案區', '突出妝容氣氛而非商業硬銷'],
-    stylingKeywords: ['beauty editorial spread', 'warm neutral palette', 'magazine layout', 'product callouts'],
-  },
-  {
-    id: 'product-sheet',
-    name: '產品清單',
-    tagline: '像美容編輯整理的今日搭配頁',
-    description: '以產品名單與搭配順序為主，適合強調今天用過哪些產品。',
-    orientation: 'square',
-    tone: '清爽排版、產品卡片感、方便社交分享',
-    composition: ['產品名稱列表為主', '自拍作為輔助圖', '保留今日妝容標題與重點摘要'],
-    stylingKeywords: ['product board', 'beauty checklist', 'clean editorial card', 'social share layout'],
+    tone: '柔和奶茶感、手寫旁註、溫柔雜誌頁、生活感',
+    composition: ['自拍作為主視覺', '以細線標註眼妝、胭脂、唇妝、底妝', '標註內容清楚顯示產品類別、品牌與產品名'],
+    stylingKeywords: ['annotated makeup breakdown', 'soft editorial notes', 'cream paper mood', 'beauty callouts'],
   },
 ];
 
@@ -57,10 +47,6 @@ export function getMakeupShareTemplate(templateId: MakeupShareTemplate['id']) {
     MAKEUP_SHARE_TEMPLATES.find((template) => template.id === templateId) ??
     MAKEUP_SHARE_TEMPLATES[0]
   );
-}
-
-export function canUsePremiumShare(profile: Pick<Profile, 'tier'> | null) {
-  return profile?.tier === 'pro' || profile?.tier === 'pro_plus';
 }
 
 export function buildMakeupSharePrompt(input: MakeupSharePromptInput) {
@@ -80,10 +66,13 @@ export function buildMakeupSharePrompt(input: MakeupSharePromptInput) {
     `整體氣氛：${template.tone}。`,
     `構圖重點：${template.composition.join('、')}。`,
     `視覺關鍵字：${template.stylingKeywords.join(', ')}。`,
-    `圖片比例：${template.orientation === 'portrait' ? '直向 4:5' : '正方形 1:1'}。`,
+    '圖片比例：直向 4:5。',
     `標題：${title}。`,
     `文字摘要：${notes}。`,
     `本次使用產品：\n${productList}`,
+    template.id === 'product-catalog'
+      ? '請優先確保右側產品清單清楚易讀，產品資訊要整齊、優雅、有高級感，像美容編輯整理頁。'
+      : '請優先確保臉部旁註位置自然，清楚指出對應妝容部位，像妝容解析筆記。',
     input.selfieUrl
       ? '請保留自拍中的人物特徵與妝容方向，整體做成精緻、自然、可分享的編輯式視覺。'
       : '未提供自拍，請用柔和美容編輯排版呈現產品與妝容主題。',
@@ -103,6 +92,6 @@ export function buildMakeupSharePrompt(input: MakeupSharePromptInput) {
 }
 
 export function getMakeupShareOutputSize(templateId: MakeupShareTemplate['id']) {
-  const template = getMakeupShareTemplate(templateId);
-  return template.orientation === 'portrait' ? '1024x1536' : '1024x1024';
+  getMakeupShareTemplate(templateId);
+  return '1024x1536';
 }

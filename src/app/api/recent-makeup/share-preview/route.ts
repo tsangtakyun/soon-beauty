@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { buildMakeupSharePrompt, canUsePremiumShare } from '@/lib/recent-makeup-share';
+import { buildMakeupSharePrompt } from '@/lib/recent-makeup-share';
 import type { Product } from '@/types/database';
 
 export async function POST(request: Request) {
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       selfieUrl,
       selectedProducts,
     }: {
-      templateId: 'soft-cover' | 'editorial-note' | 'product-sheet';
+      templateId: 'product-catalog' | 'annotated-breakdown';
       title?: string | null;
       notes?: string | null;
       selfieUrl?: string | null;
@@ -33,12 +33,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Template required' }, { status: 400 });
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('tier')
-      .eq('id', user.id)
-      .single();
-
     const preview = buildMakeupSharePrompt({
       templateId,
       title: title ?? null,
@@ -48,8 +42,6 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      currentTier: profile?.tier ?? 'free',
-      premiumEnabled: canUsePremiumShare(profile),
       preview,
     });
   } catch (error) {

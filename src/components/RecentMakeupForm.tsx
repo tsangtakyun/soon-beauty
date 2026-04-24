@@ -6,10 +6,9 @@ import Image from 'next/image';
 import { Camera, Check, ChevronDown, Loader2, Plus, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { compressImage } from '@/lib/image';
-import type { Category, Product, RecentMakeupLog, Profile } from '@/types/database';
+import type { Category, Product, RecentMakeupLog } from '@/types/database';
 import {
   MAKEUP_SHARE_TEMPLATES,
-  canUsePremiumShare,
   type MakeupShareTemplate,
 } from '@/lib/recent-makeup-share';
 
@@ -17,7 +16,6 @@ type RecentMakeupFormProps = {
   products: Product[];
   logs: RecentMakeupLog[];
   categories: Category[];
-  profile: Pick<Profile, 'tier'> | null;
 };
 
 type LogPreview = RecentMakeupLog & {
@@ -60,7 +58,7 @@ async function getShareImagePayload(file: File | null, selfieUrl: string | null)
   return await compressImage(fetchedFile, { maxDimension: 1400, quality: 0.86 });
 }
 
-export default function RecentMakeupForm({ products, logs, categories, profile }: RecentMakeupFormProps) {
+export default function RecentMakeupForm({ products, logs, categories }: RecentMakeupFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
@@ -80,8 +78,6 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
   const [shareGenerateError, setShareGenerateError] = useState<string | null>(null);
   const [generatedShareUrl, setGeneratedShareUrl] = useState<string | null>(null);
   const [sharePreviewData, setSharePreviewData] = useState<{
-    currentTier: 'free' | 'pro' | 'pro_plus';
-    premiumEnabled: boolean;
     preview: {
       template: MakeupShareTemplate;
       prompt: string;
@@ -158,8 +154,6 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
       }))
       .filter((group) => group.products.length > 0);
   }, [activeCategory, categoryMeta, searchQuery]);
-
-  const premiumEnabled = canUsePremiumShare(profile);
 
   const selectedProductObjects = useMemo(
     () => products.filter((product) => selectedProducts.includes(product.id)),
@@ -385,15 +379,13 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
                 </button>
               </div>
               <p className="fini-makeup-premium-hero-note">
-                {premiumEnabled
-                  ? '你目前已可使用分享圖生成功能。'
-                  : '此功能目前屬於 Premium 方案內容，可用作升級解鎖的重點功能。'}
+                先用兩款主模板測試順暢度，再慢慢收斂最終美術方向。
               </p>
             </div>
             <div className="fini-makeup-demo-card" aria-hidden="true">
               <span className="fini-makeup-demo-kicker">AI DEMO</span>
               <strong>Today&apos;s Makeup</strong>
-              <p>柔光封面 · 產品清單 · 自拍主視覺</p>
+              <p>產品清單版 · 旁註解析版 · 自拍主視覺</p>
             </div>
           </section>
 
@@ -521,17 +513,17 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
       </section>
 
       <section className="fini-section-panel">
-          <div className="fini-makeup-premium-head">
-            <div>
-              <p className="fini-section-kicker">模板預覽</p>
-              <h2 className="fini-section-title">AI 妝容封面模板</h2>
-              <p className="fini-dash-sub mt-2">
-                之後可用自拍與已選產品生成雜誌風分享圖，方便直接分享當日妝容與使用清單。
-              </p>
+        <div className="fini-makeup-premium-head">
+          <div>
+            <p className="fini-section-kicker">模板預覽</p>
+            <h2 className="fini-section-title">分享圖主模板</h2>
+            <p className="fini-dash-sub mt-2">
+              先集中兩款主模板：一款清楚列出產品，一款標示妝容重點。
+            </p>
           </div>
           <span className="fini-premium-badge">
             <Sparkles className="w-4 h-4" />
-            Premium
+            兩款主模板
           </span>
         </div>
 
@@ -550,7 +542,7 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
         </div>
 
         <div className="fini-makeup-premium-note">
-          <p>此功能已預留在頁面內，之後可再接入付費方案、生成圖流程與範本選擇。</p>
+          <p>目前先專心測試這兩款版型，之後再微調字體、版面與生成效果。</p>
         </div>
 
         {sharePreviewError && <div className="fini-login-error">{sharePreviewError}</div>}
@@ -562,10 +554,8 @@ export default function RecentMakeupForm({ products, logs, categories, profile }
                 <p className="fini-section-kicker">模板摘要</p>
                 <h3>{sharePreviewData.preview.template.name}</h3>
               </div>
-              <span className={`fini-premium-state ${sharePreviewData.premiumEnabled ? 'is-on' : 'is-off'}`}>
-                {sharePreviewData.premiumEnabled
-                  ? `已開通 ${sharePreviewData.currentTier}`
-                  : `目前方案：${sharePreviewData.currentTier}`}
+              <span className="fini-premium-state is-on">
+                主模板
               </span>
             </div>
             <div className="fini-makeup-preview-summary">
