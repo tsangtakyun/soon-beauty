@@ -1051,7 +1051,7 @@ export default function SkinToneClient({
     return (
       <div className="space-y-5">
         <section className="tone-result-hero" style={{ background: config.glow }}>
-          <div className="grid gap-6 lg:grid-cols-[0.88fr_1.12fr] lg:items-stretch">
+          <div className="grid gap-6 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
             <div className="overflow-hidden rounded-[32px] border border-white/50 bg-white/70 p-3 backdrop-blur-sm">
               {selfiePreviewUrl ? (
                 <img
@@ -1066,7 +1066,7 @@ export default function SkinToneClient({
               )}
             </div>
 
-            <div className="flex flex-col justify-between">
+            <div>
               <div>
                 <div className="tone-kicker">Personal Color Report</div>
                 <div className="mt-3 inline-flex items-center gap-3 rounded-full border border-white/60 bg-white/70 px-4 py-2 text-sm font-medium text-[#1a1218] backdrop-blur-sm">
@@ -1076,40 +1076,7 @@ export default function SkinToneClient({
                 </div>
 
                 <h2 className="tone-display mt-4 max-w-xl">{latestResult.overall_impression}</h2>
-                <p className="tone-body mt-3 max-w-xl">{profile.season_description}</p>
-
-                {latestResult.key_traits?.length ? (
-                  <div className="mt-5 flex flex-wrap gap-2.5">
-                    {latestResult.key_traits.map((trait) => (
-                      <span
-                        key={trait}
-                        className="inline-flex rounded-full border border-white/55 bg-white/72 px-3 py-2 text-sm text-[#6e545c]"
-                      >
-                        {trait}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                {reportCards.map(([label, score]) => (
-                  <div key={label} className="rounded-[24px] border border-white/55 bg-white/78 p-4 backdrop-blur-sm">
-                    <div className="text-sm font-medium text-[#1a1218]">{label}</div>
-                    <div className="mt-3 flex gap-2">
-                      {Array.from({ length: 5 }).map((_, index) => (
-                        <span
-                          key={`${label}-${index}`}
-                          className="h-3 w-3 rounded-full"
-                          style={{ background: index < score ? config.accent : '#f0e4df' }}
-                        />
-                      ))}
-                    </div>
-                    <div className="mt-3 text-2xl font-medium text-[#5c4035]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                      {score} / 5
-                    </div>
-                  </div>
-                ))}
+                <p className="tone-body mt-5 max-w-xl">{profile.season_description}</p>
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
@@ -1117,6 +1084,52 @@ export default function SkinToneClient({
                   重新分析
                 </button>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="tone-panel p-5 sm:p-6">
+          <div className="tone-kicker">Report Summary</div>
+          <h3 className="mt-2 text-[28px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            分析摘要
+          </h3>
+
+          <div className="mt-5 space-y-4">
+            <div className="rounded-[26px] border border-[#eee3e1] bg-[#fffdfc] p-5 text-sm leading-7 text-[#5f464f]">
+              {profile.season_description}
+            </div>
+
+            {latestResult.key_traits?.length ? (
+              <div className="flex flex-wrap gap-2.5">
+                {latestResult.key_traits.map((trait) => (
+                  <span
+                    key={trait}
+                    className="inline-flex rounded-full border border-[#e6dbd4] bg-[#fff9f4] px-3 py-2 text-sm text-[#6e545c]"
+                  >
+                    {trait}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              {reportCards.map(([label, score]) => (
+                <div key={label} className="rounded-[24px] border border-[#ece2dc] bg-white p-4">
+                  <div className="text-sm font-medium text-[#1a1218]">{label}</div>
+                  <div className="mt-3 flex gap-2">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <span
+                        key={`${label}-${index}`}
+                        className="h-3 w-3 rounded-full"
+                        style={{ background: index < score ? config.accent : '#f0e4df' }}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-3 text-2xl font-medium text-[#5c4035]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                    {score} / 5
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
