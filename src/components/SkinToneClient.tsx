@@ -30,6 +30,7 @@ type JewelryPref = 'gold' | 'silver' | 'both';
 type UndertonePref = 'yellow' | 'pink' | 'olive' | 'unclear';
 type ContrastPref = 'soft' | 'balanced' | 'high';
 type SunReaction = 'burns_easy' | 'tan_easy' | 'both' | 'unclear';
+type AnalysisMethod = 'guided' | 'quick';
 
 const STAGE_INDEX: Record<Exclude<Stage, 'landing' | 'analyzing' | 'result'>, number> = {
   vein: 1,
@@ -548,6 +549,7 @@ export default function SkinToneClient({
   products: Product[];
 }) {
   const [stage, setStage] = useState<Stage>(existingProfile ? 'result' : 'landing');
+  const [method, setMethod] = useState<AnalysisMethod>('guided');
   const [veinColor, setVeinColor] = useState<VeinColor | null>(null);
   const [jewelryPref, setJewelryPref] = useState<JewelryPref | null>(null);
   const [undertonePref, setUndertonePref] = useState<UndertonePref | null>(null);
@@ -565,9 +567,11 @@ export default function SkinToneClient({
     bad: Array<{ label: string; imageUrl: string }>;
   } | null>(null);
 
-  async function analyse(photoData?: string, photoUrl?: string) {
+  async function analyse(photoData?: string, photoUrl?: string, requestedMethod?: AnalysisMethod) {
     const finalSelfieData = photoData ?? selfieData;
-    if (!finalSelfieData || !veinColor || !jewelryPref || !undertonePref || !contrastPref || !sunReaction) return;
+    const finalMethod = requestedMethod ?? method;
+    if (!finalSelfieData) return;
+    if (finalMethod === 'guided' && (!veinColor || !jewelryPref || !undertonePref || !contrastPref || !sunReaction)) return;
 
     setStage('analyzing');
     setError(null);
@@ -579,6 +583,7 @@ export default function SkinToneClient({
         body: JSON.stringify({
           selfieData: finalSelfieData,
           mediaType: 'image/jpeg',
+          analysisMode: finalMethod,
           veinColor,
           jewelryPref,
           undertonePref,
@@ -592,6 +597,7 @@ export default function SkinToneClient({
 
       setResult(data.result);
       setProfile(data.result);
+      setMethod(finalMethod);
       setSelfieData(finalSelfieData);
       setSelfiePreviewUrl(data.result.selfie_url ?? photoUrl ?? selfiePreviewUrl ?? null);
       setStage('result');
@@ -613,6 +619,7 @@ export default function SkinToneClient({
     setSelfiePreviewUrl(null);
     setDemoCards(null);
     setDemoError(null);
+    setMethod('guided');
     setStage('landing');
   }
 
@@ -651,19 +658,57 @@ export default function SkinToneClient({
     return (
       <div className="space-y-5">
         <section className="tone-hero">
-          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
             <div className="space-y-5">
               <div className="tone-kicker">Personal Color Studio</div>
-              <h2 className="tone-display max-w-xl">重做你嘅膚色分析流程，唔止分四季，仲直接幫你揀色。</h2>
+              <h2 className="tone-display max-w-xl">俾你自己揀分析方式，最後都整理成同一份個人色彩報告。</h2>
               <p className="tone-body max-w-xl">
-                呢個版本會先完成五條問題，再用自然自拍補足分析，最後整理成一份更完整、更接近個人報告書嘅色彩分析結果。
+                如果想快，可以直接用自然自拍做 `快速 AI 分析`；如果想更細緻，就保留 `進階問答分析`。兩邊最後都會輸出同一種報告格式。
               </p>
 
-              <div className="flex flex-wrap gap-3">
-                <button onClick={() => setStage('vein')} className="btn-primary">
-                  開始分析
-                  <ChevronRight className="ml-1 h-4 w-4" />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  onClick={() => {
+                    setMethod('quick');
+                    setStage('selfie');
+                  }}
+                  className="rounded-[30px] border border-[#e8d9dd] bg-white p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_rgba(176,96,112,0.12)]"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f6ecef] text-[#b06070]">
+                    <ScanFace className="h-6 w-6" />
+                  </div>
+                  <div className="mt-4 text-[18px] font-medium text-[#1a1218]">快速 AI 分析</div>
+                  <p className="mt-2 text-sm leading-6 text-[#7a6068]">
+                    只需一張自然光素顏自拍，AI 直接推斷膚色、明度、對比度與季節型。
+                  </p>
+                  <div className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#b06070]">
+                    直接開始
+                    <ChevronRight className="h-4 w-4" />
+                  </div>
                 </button>
+
+                <button
+                  onClick={() => {
+                    setMethod('guided');
+                    setStage('vein');
+                  }}
+                  className="rounded-[30px] border border-[#e8d9dd] bg-[#fffaf8] p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_rgba(176,96,112,0.12)]"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f8efe4] text-[#d27b43]">
+                    <Sparkles className="h-6 w-6" />
+                  </div>
+                  <div className="mt-4 text-[18px] font-medium text-[#1a1218]">進階問答分析</div>
+                  <p className="mt-2 text-sm leading-6 text-[#7a6068]">
+                    保留五條問題，再配合自然自拍，適合想做得更細緻、更穩陣嘅用家。
+                  </p>
+                  <div className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#b06070]">
+                    問答後分析
+                    <ChevronRight className="h-4 w-4" />
+                  </div>
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
                 {existingProfile && (
                   <button onClick={() => setStage('result')} className="btn-secondary">
                     查看上次結果
@@ -673,9 +718,9 @@ export default function SkinToneClient({
 
               <div className="grid gap-3 sm:grid-cols-3">
                 {[
-                  { icon: <Sparkles className="h-5 w-5" />, title: '五題問卷', desc: '先收集你對自己膚色最有感覺嘅線索' },
-                  { icon: <ScanFace className="h-5 w-5" />, title: '自然自拍', desc: '再用一張自然光自拍補足明度與氣質判斷' },
-                  { icon: <Palette className="h-5 w-5" />, title: '完整報告', desc: '輸出色票、避雷色與彩妝配搭建議' },
+                  { icon: <ScanFace className="h-5 w-5" />, title: '快速入口', desc: '一張自拍即可開始，完成率更高。' },
+                  { icon: <Sparkles className="h-5 w-5" />, title: '進階入口', desc: '保留問答補充線索，分析會更細。' },
+                  { icon: <Palette className="h-5 w-5" />, title: '同一份報告', desc: '最後都會整理成同一種個人色彩報告。' },
                 ].map((item) => (
                   <div key={item.title} className="tone-mini-card">
                     <div className="tone-mini-icon">{item.icon}</div>
@@ -687,13 +732,13 @@ export default function SkinToneClient({
             </div>
 
             <div className="tone-panel p-5 sm:p-6">
-              <div className="tone-kicker">What You’ll Get</div>
+              <div className="tone-kicker">How To Choose</div>
               <div className="mt-3 space-y-3">
                 {[
-                  ['你的季節型 + 冷暖調', '會一齊判斷底色、膚色深淺、對比度與清晰度。'],
-                  ['個人色板', '每類彩妝都有建議色系，可以直接拎去揀貨。'],
-                  ['避雷提醒', '顏色一眼睇到，唔使再靠記憶。'],
-                  ['延伸建議', '會整理髮色、服裝、飾物與日常配搭方向。'],
+                  ['快速 AI 分析', '最適合想先試結果、唔想答太多問題嘅用家。'],
+                  ['進階問答分析', '最適合已經對自己膚色有感覺，想加多幾條線索再判斷。'],
+                  ['分析結果一致化', '無論由邊個入口進入，最後都會變成同一份色彩報告頁。'],
+                  ['之後可比較準確度', '日後可以再睇用家偏好同結果一致性，慢慢定主方法。'],
                 ].map(([title, desc], index) => (
                   <div key={title} className="flex items-start gap-3 rounded-[26px] bg-[#fffaf8] p-4">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#b06070] text-sm font-medium text-white">
@@ -973,17 +1018,29 @@ export default function SkinToneClient({
           </div>
         )}
         <ImageCapture
-          subtitle="Step 6 / 6"
-          title="上傳一張自然自拍"
-          instruction="請喺自然光下上傳正面自拍，盡量唔好開美顏、濾鏡或太重妝。呢張相會用作整體膚色、明度、清晰度同氣質分析。"
-          tip="背景簡單啲會更好，最好見到完整面部輪廓，避免逆光、偏黃燈光或過度修圖。"
-          note="呢張自拍會成為分析報告主圖，所以建議用你覺得最自然、最接近日常真實膚色嘅一張。"
+          subtitle={method === 'quick' ? '快速 AI 分析' : 'Step 6 / 6'}
+          title={method === 'quick' ? '上傳一張自然光素顏自拍' : '上傳一張自然自拍'}
+          instruction={
+            method === 'quick'
+              ? '請喺自然光下上傳正面素顏自拍，盡量唔好開美顏、濾鏡或太重妝。AI 會直接根據相片推斷膚色、瞳色、髮色、明度與整體氣質。'
+              : '請喺自然光下上傳正面自拍，盡量唔好開美顏、濾鏡或太重妝。呢張相會用作整體膚色、明度、清晰度同氣質分析。'
+          }
+          tip={
+            method === 'quick'
+              ? '快速分析會更加依賴光線條件，所以請盡量避開黃燈、逆光、濾鏡、化妝同強烈反光。'
+              : '背景簡單啲會更好，最好見到完整面部輪廓，避免逆光、偏黃燈光或過度修圖。'
+          }
+          note={
+            method === 'quick'
+              ? '呢張自拍會成為分析報告主圖；如果之後覺得想再精準啲，可以改用進階問答分析。'
+              : '呢張自拍會成為分析報告主圖，所以建議用你覺得最自然、最接近日常真實膚色嘅一張。'
+          }
           onCapture={(data, url) => {
             setSelfieData(data);
             setSelfiePreviewUrl(url);
-            void analyse(data, url);
+            void analyse(data, url, method);
           }}
-          onBack={() => setStage('sun')}
+          onBack={() => setStage(method === 'quick' ? 'landing' : 'sun')}
           previewLabel="自拍預覽"
           captureMode="user"
         />
@@ -999,14 +1056,22 @@ export default function SkinToneClient({
         </div>
         <h2 className="tone-title mt-5">AI 正喺幫你交叉分析膚色</h2>
         <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-[#7a6068]">
-          會同時參考五條問卷答案同自然自拍，整理出季節型、色板、避雷色同整體搭配方向。正常大約 15 至 20 秒完成。
+          {method === 'quick'
+            ? '會直接根據自然自拍整理出季節型、色板、避雷色同整體搭配方向。正常大約 15 至 20 秒完成。'
+            : '會同時參考五條問卷答案同自然自拍，整理出季節型、色板、避雷色同整體搭配方向。正常大約 15 至 20 秒完成。'}
         </p>
         <div className="mx-auto mt-8 grid max-w-2xl gap-3 text-left sm:grid-cols-3">
-          {[
-            '綜合五條問卷線索，建立冷暖調與對比度輪廓',
-            '讀取自然自拍，補足膚色深淺與清晰度判斷',
-            '整理成實用配色、避雷色同延伸建議',
-          ].map((item) => (
+          {(method === 'quick'
+            ? [
+                '讀取自然自拍，估算膚色、髮色、瞳色與整體明度',
+                '由影像推斷冷暖調、對比度、清晰度與氣質方向',
+                '整理成實用配色、避雷色同延伸建議',
+              ]
+            : [
+                '綜合五條問卷線索，建立冷暖調與對比度輪廓',
+                '讀取自然自拍，補足膚色深淺與清晰度判斷',
+                '整理成實用配色、避雷色同延伸建議',
+              ]).map((item) => (
             <div key={item} className="rounded-[24px] bg-[#fff8fa] p-4 text-sm leading-6 text-[#7a6068]">
               <div className="mb-2 h-1.5 w-10 rounded-full bg-[#b06070]" />
               {item}

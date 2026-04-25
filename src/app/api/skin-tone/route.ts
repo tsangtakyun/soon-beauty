@@ -106,6 +106,7 @@ type JewelryPref = 'gold' | 'silver' | 'both';
 type UndertonePref = 'yellow' | 'pink' | 'olive' | 'unclear';
 type ContrastPref = 'soft' | 'balanced' | 'high';
 type SunReaction = 'burns_easy' | 'tan_easy' | 'both' | 'unclear';
+type AnalysisMode = 'guided' | 'quick';
 
 type ColorAnalysisResult = Omit<ColorProfile, 'analysed_at'> & {
   season_confidence: 'high' | 'medium' | 'low';
@@ -142,15 +143,17 @@ async function uploadAnalysisSelfie(params: {
 }
 
 function questionSummary(params: {
+  analysisMode?: AnalysisMode;
   veinColor?: VeinColor;
   jewelryPref?: JewelryPref;
   undertonePref?: UndertonePref;
   contrastPref?: ContrastPref;
   sunReaction?: SunReaction;
 }) {
-  const { veinColor, jewelryPref, undertonePref, contrastPref, sunReaction } = params;
+  const { analysisMode, veinColor, jewelryPref, undertonePref, contrastPref, sunReaction } = params;
 
   return [
+    `分析模式：${analysisMode === 'quick' ? '快速 AI 分析（只用自然自拍）' : '進階問答分析（自拍 + 五條問題）'}`,
     `靜脈顏色：${veinColor === 'blue_purple' ? '藍 / 紫' : veinColor === 'green' ? '綠色' : '不確定'}`,
     `飾物偏好：${jewelryPref === 'gold' ? '金色更襯' : jewelryPref === 'silver' ? '銀色更襯' : '金銀都可'}`,
     `自評底色：${undertonePref === 'yellow' ? '黃調' : undertonePref === 'pink' ? '粉紅調' : undertonePref === 'olive' ? '橄欖 / 灰綠調' : '不確定'}`,
@@ -165,7 +168,7 @@ function buildPrompt(summary: string) {
     '請根據用戶的問卷與自然光自拍，回傳一份可直接用於美容報告頁的分析結果。',
     '輸出時請務必遵守 JSON schema，不要輸出任何額外文字。',
     '分析要求：',
-    '1. 問卷答案優先，自拍負責校正與補足觀察。',
+    '1. 如果有問卷答案，請以問卷答案優先，自拍負責校正與補足觀察；如果是快速 AI 分析模式，請只根據自然自拍做謹慎判斷，並在 notes 說明限制。',
     '2. 圖片是自然自拍，只能用於推斷膚色、明度、清晰度、對比感與整體氣質，不可捏造不存在的細節。',
     '3. 所有推薦色與避開色請用繁體中文常用色名。',
     '4. suitable_shades 與 recommendations 要可以直接用於前端報告卡。',
@@ -217,6 +220,7 @@ export async function POST(request: Request) {
     const {
       selfieData,
       mediaType,
+      analysisMode,
       veinColor,
       jewelryPref,
       undertonePref,
@@ -225,6 +229,7 @@ export async function POST(request: Request) {
     }: {
       selfieData?: string | null;
       mediaType?: string;
+      analysisMode?: AnalysisMode;
       veinColor?: VeinColor;
       jewelryPref?: JewelryPref;
       undertonePref?: UndertonePref;
@@ -232,8 +237,17 @@ export async function POST(request: Request) {
       sunReaction?: SunReaction;
     } = body;
 
-    if (!selfieData || !veinColor || !jewelryPref || !undertonePref || !contrastPref || !sunReaction) {
-      return NextResponse.json({ error: '問卷答案與自拍都需要完整提供。' }, { status: 400 });
+    if (!selfieData) {
+      return NextResponse.json({ error: '需要先提供自然自拍。' }, { status: 400 });
+    }
+
+    const mode = analysisMode ?? 'guided';
+
+    if (
+      mode === 'guided' &&
+      (!veinColor || !jewelryPref || !undertonePref || !contrastPref || !sunReaction)
+    ) {
+      return NextResponse.json({ error: '進階問答分析需要完整提供五條答案與自拍。' }, { status: 400 });
     }
 
     const selfieUrl = await uploadAnalysisSelfie({
@@ -257,6 +271,7 @@ export async function POST(request: Request) {
             role: 'system',
             content: buildPrompt(
               questionSummary({
+                analysisMode: mode,
                 veinColor,
                 jewelryPref,
                 undertonePref,

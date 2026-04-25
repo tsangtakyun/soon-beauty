@@ -25,7 +25,7 @@ export default async function SkinTonePage() {
     <div className="space-y-5 animate-fade-in">
       <div>
         <h1 className="fini-dash-title">色彩分析</h1>
-        <p className="fini-dash-sub">先完成 5 條問題，再上傳自然自拍，系統會整理成一份更完整嘅個人色彩分析報告。</p>
+        <p className="fini-dash-sub">你可以揀快速 AI 分析，或者保留進階問答分析；兩邊最後都會整理成同一份個人色彩分析報告。</p>
       </div>
       <SkinToneClient
         existingProfile={(profile?.color_profile as ColorProfile | null) ?? null}
