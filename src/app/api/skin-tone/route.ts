@@ -45,6 +45,18 @@ const ANALYSIS_SCHEMA = {
         },
         required: ['warmth', 'contrast', 'clarity'],
       },
+      color_samples: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            label: { type: 'string' },
+            hex: { type: 'string' },
+          },
+          required: ['label', 'hex'],
+        },
+      },
       recommendations: {
         type: 'object',
         additionalProperties: false,
@@ -94,6 +106,7 @@ const ANALYSIS_SCHEMA = {
       'suitable_shades',
       'avoid_shades',
       'scores',
+      'color_samples',
       'recommendations',
       'notes',
       'photo_observation',
@@ -170,11 +183,12 @@ function buildPrompt(summary: string) {
     '分析要求：',
     '1. 如果有問卷答案，請以問卷答案優先，自拍負責校正與補足觀察；如果是快速 AI 分析模式，請只根據自然自拍做謹慎判斷，並在 notes 說明限制。',
     '2. 圖片是自然自拍，只能用於推斷膚色、明度、清晰度、對比感與整體氣質，不可捏造不存在的細節。',
-    '3. 所有推薦色與避開色請用繁體中文常用色名。',
-    '4. suitable_shades 與 recommendations 要可以直接用於前端報告卡。',
-    '5. overall_impression 用一至兩句繁體中文書面語，描述整體氣質。',
-    '6. notes 要簡短說明分析限制，例如光線、自拍角度或彩妝干擾。',
-    '7. photo_observation 如沒有特別需要提醒，回 null。',
+    '3. 請額外輸出 color_samples，至少包含：前額膚色、臉頰膚色、頸部膚色、自然髮色、瞳孔顏色、唇色；hex 請使用 #RRGGBB 格式。',
+    '4. 所有推薦色與避開色請用繁體中文常用色名。',
+    '5. suitable_shades 與 recommendations 要可以直接用於前端報告卡。',
+    '6. overall_impression 用一至兩句繁體中文書面語，描述整體氣質。',
+    '7. notes 要簡短說明分析限制，例如光線、自拍角度或彩妝干擾。',
+    '8. photo_observation 如沒有特別需要提醒，回 null。',
     '問卷摘要：',
     summary,
   ].join('\n');
@@ -182,6 +196,7 @@ function buildPrompt(summary: string) {
 
 function normalizeAnalysis(result: ColorAnalysisResult, selfieUrl: string | null): ColorProfile {
   return {
+    analysis_method: undefined,
     season: result.season,
     warm_cool: result.warm_cool,
     skin_depth: result.skin_depth,
@@ -197,6 +212,7 @@ function normalizeAnalysis(result: ColorAnalysisResult, selfieUrl: string | null
     notes: result.notes,
     photo_observation: result.photo_observation,
     scores: result.scores,
+    color_samples: result.color_samples,
     recommendations: result.recommendations,
   };
 }
@@ -326,6 +342,7 @@ export async function POST(request: Request) {
           );
 
     const profile = normalizeAnalysis(parsed as ColorAnalysisResult, selfieUrl);
+    profile.analysis_method = mode;
 
     await supabase
       .from('profiles')

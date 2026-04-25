@@ -190,6 +190,11 @@ export type ColorAnalysisScores = {
   clarity: number;
 };
 
+export type ColorSample = {
+  label: string;
+  hex: string;
+};
+
 export type ColorRecommendations = {
   best_colors: string[];
   secondary_colors: string[];
@@ -207,6 +212,7 @@ export type ColorRecommendations = {
 };
 
 export type ColorProfile = {
+  analysis_method?: 'guided' | 'quick';
   season: 'spring' | 'summer' | 'autumn' | 'winter';
   warm_cool: 'warm' | 'cool' | 'neutral';
   skin_depth: 'fair' | 'light' | 'medium' | 'tan' | 'deep';
@@ -223,6 +229,7 @@ export type ColorProfile = {
   photo_observation?: string | null;
   scores?: ColorAnalysisScores;
   recommendations?: ColorRecommendations;
+  color_samples?: ColorSample[];
 };
 
 export type Product = Database['public']['Tables']['products']['Row'];

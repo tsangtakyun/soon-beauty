@@ -148,6 +148,9 @@ const SHADE_SWATCHES: Record<string, string> = {
 };
 
 function getSwatchColor(name: string) {
+  if (/^#?[0-9a-fA-F]{6}$/.test(name)) {
+    return name.startsWith('#') ? name : `#${name}`;
+  }
   const exact = SHADE_SWATCHES[name];
   if (exact) return exact;
   if (name.includes('粉')) return '#d7a0b6';
@@ -1112,6 +1115,7 @@ export default function SkinToneClient({
       ['對比度', latestResult.scores?.contrast ?? 3],
       ['清晰度', latestResult.scores?.clarity ?? 3],
     ] as const;
+    const colorSamples = profile.color_samples ?? [];
 
     return (
       <div className="space-y-5">
@@ -1198,6 +1202,35 @@ export default function SkinToneClient({
             </div>
           </div>
         </section>
+
+        {profile.analysis_method === 'quick' && colorSamples.length > 0 && (
+          <section className="tone-panel p-5 sm:p-6">
+            <div className="tone-kicker">AI Color Reading</div>
+            <h3 className="mt-2 text-[28px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              自拍讀取到的色值
+            </h3>
+            <p className="mt-3 text-sm leading-6 text-[#7a6068]">
+              呢一版會先由 AI 讀取你自拍入面嘅膚色、髮色、瞳色與唇色，再結合四季色彩理論做分析。
+            </p>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {colorSamples.map((sample) => (
+                <div key={`${sample.label}-${sample.hex}`} className="rounded-[24px] border border-[#ece2dc] bg-white p-4">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="inline-block h-12 w-12 rounded-2xl border border-black/5"
+                      style={{ background: getSwatchColor(sample.hex) }}
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-[#1a1218]">{sample.label}</div>
+                      <div className="mt-1 text-sm text-[#8b6d72]">{sample.hex.toUpperCase()}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="tone-panel p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
@@ -1422,13 +1455,19 @@ export default function SkinToneClient({
         <section className="tone-panel p-5 sm:p-6">
               <div className="tone-kicker">Reading Notes</div>
               <div className="mt-4 space-y-3">
-                {[
-                  ['問卷線索', `靜脈：${veinColor === 'blue_purple' ? '藍 / 紫' : veinColor === 'green' ? '綠色' : veinColor === 'unclear' ? '不確定' : '未提供'}`],
-                  ['飾物偏好', jewelryPref === 'gold' ? '金色更襯' : jewelryPref === 'silver' ? '銀色更襯' : jewelryPref === 'both' ? '兩者都可以' : '未提供'],
-                  ['自評底色', undertonePref ? (undertonePref === 'yellow' ? '黃調' : undertonePref === 'pink' ? '粉紅調' : undertonePref === 'olive' ? '橄欖 / 灰綠調' : '唔確定') : '未提供'],
-                  ['對比感', contrastPref === 'soft' ? '偏柔和' : contrastPref === 'balanced' ? '中等平衡' : contrastPref === 'high' ? '對比感高' : '未提供'],
-                  ['曬後反應', sunReaction === 'burns_easy' ? '容易泛紅 / 曬傷' : sunReaction === 'tan_easy' ? '容易曬成啡金色' : sunReaction === 'both' ? '兩種都會' : sunReaction === 'unclear' ? '不確定' : '未提供'],
-                ].map(([label, value]) => (
+                {(profile.analysis_method === 'quick'
+                  ? [
+                      ['分析方式', '快速 AI 分析'],
+                      ['自然自拍', '直接由自拍推斷膚色、髮色、瞳色與整體對比感'],
+                      ['適用情況', '想先快速知道季節型與色板方向'],
+                    ]
+                  : [
+                      ['問卷線索', `靜脈：${veinColor === 'blue_purple' ? '藍 / 紫' : veinColor === 'green' ? '綠色' : veinColor === 'unclear' ? '不確定' : '未提供'}`],
+                      ['飾物偏好', jewelryPref === 'gold' ? '金色更襯' : jewelryPref === 'silver' ? '銀色更襯' : jewelryPref === 'both' ? '兩者都可以' : '未提供'],
+                      ['自評底色', undertonePref ? (undertonePref === 'yellow' ? '黃調' : undertonePref === 'pink' ? '粉紅調' : undertonePref === 'olive' ? '橄欖 / 灰綠調' : '唔確定') : '未提供'],
+                      ['對比感', contrastPref === 'soft' ? '偏柔和' : contrastPref === 'balanced' ? '中等平衡' : contrastPref === 'high' ? '對比感高' : '未提供'],
+                      ['曬後反應', sunReaction === 'burns_easy' ? '容易泛紅 / 曬傷' : sunReaction === 'tan_easy' ? '容易曬成啡金色' : sunReaction === 'both' ? '兩種都會' : sunReaction === 'unclear' ? '不確定' : '未提供'],
+                    ]).map(([label, value]) => (
                   <div key={label} className="rounded-[22px] bg-[#fffdfc] p-4">
                     <div className="text-[11px] uppercase tracking-[0.2em] text-[#9b7e86]">{label}</div>
                     <div className="mt-2 text-sm leading-6 text-[#5f464f]">{value}</div>
