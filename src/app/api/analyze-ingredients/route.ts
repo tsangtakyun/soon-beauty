@@ -145,7 +145,17 @@ export async function POST(request: Request) {
     const existingProducts = userProducts ?? [];
 
     // Build message content
-    const content: Anthropic.Messages.ContentBlockParam[] = [];
+    const content: Array<
+      | { type: 'text'; text: string }
+      | {
+          type: 'image';
+          source: {
+            type: 'base64';
+            media_type: 'image/jpeg' | 'image/png' | 'image/webp';
+            data: string;
+          };
+        }
+    > = [];
 
     images.forEach((img, i) => {
       content.push({

@@ -6,13 +6,21 @@ import { createClient } from '@/lib/supabase/client';
 import { addMonths, format } from 'date-fns';
 import { zhHK } from 'date-fns/locale';
 import { Check, Pencil, X } from 'lucide-react';
-import type { Product, Category } from '@/types/database';
+import type { Product } from '@/types/database';
+
+type CategoryOption = {
+  id: string;
+  name: string;
+  color: string;
+  parent_id?: string | null;
+  sort_order?: number;
+};
 
 type InitialValues = Partial<Product> & { category_id?: string | null };
 
 type Props =
-  | { mode: 'create'; categories: Category[]; product?: never; initial?: InitialValues }
-  | { mode: 'edit'; categories: Category[]; product: Product; initial?: never };
+  | { mode: 'create'; categories: CategoryOption[]; product?: never; initial?: InitialValues }
+  | { mode: 'edit'; categories: CategoryOption[]; product: Product; initial?: never };
 
 type FormMode = 'edit' | 'preview';
 
@@ -51,11 +59,15 @@ function calcEffectiveExpiry(openedDate: string, paoMonths: number): string {
   return format(addMonths(new Date(openedDate), paoMonths), 'yyyy年M月d日', { locale: zhHK });
 }
 
-function groupCategories(categories: Category[]) {
-  const parents = categories.filter((c) => !c.parent_id).sort((a, b) => a.sort_order - b.sort_order);
+function groupCategories(categories: CategoryOption[]) {
+  const parents = categories
+    .filter((c) => !c.parent_id)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   return parents.map((parent) => ({
     parent,
-    children: categories.filter((c) => c.parent_id === parent.id).sort((a, b) => a.sort_order - b.sort_order),
+    children: categories
+      .filter((c) => c.parent_id === parent.id)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
   }));
 }
 

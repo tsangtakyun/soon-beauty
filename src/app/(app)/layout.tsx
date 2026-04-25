@@ -1,17 +1,25 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import type { ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { Home, FlaskConical, Plus, Award, CalendarDays, PawPrint } from 'lucide-react';
 
-const navItems = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: ReactNode;
+  featured?: boolean;
+};
+
+const navItems: NavItem[] = [
   { href: '/dashboard', label: '個人首頁', icon: <Home className="w-5 h-5" /> },
   { href: '/analyze', label: '成份分析', icon: <FlaskConical className="w-5 h-5" /> },
   { href: '/products/scan', label: '新增產品', icon: <Plus className="w-5 h-5" />, featured: true },
   { href: '/empty-bottle', label: '鐵皮計劃', icon: <Award className="w-5 h-5" /> },
   { href: '/calendar', label: '我的日曆', icon: <CalendarDays className="w-5 h-5" /> },
-] as const;
+];
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/?auth=login');
@@ -90,7 +98,7 @@ function NavLink({ href, label, featured }: { href: string; label: string; featu
   );
 }
 
-function BottomNavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+function BottomNavLink({ href, icon, label }: { href: string; icon: ReactNode; label: string }) {
   return (
     <Link href={href} className="fini-bottom-nav-link">
       {icon}
@@ -99,7 +107,7 @@ function BottomNavLink({ href, icon, label }: { href: string; icon: React.ReactN
   );
 }
 
-function FeaturedBottomNavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+function FeaturedBottomNavLink({ href, icon, label }: { href: string; icon: ReactNode; label: string }) {
   return (
     <div className="fini-bottom-nav-featured-wrap">
       <Link href={href} className="fini-bottom-nav-featured">

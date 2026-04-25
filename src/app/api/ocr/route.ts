@@ -138,7 +138,17 @@ export async function POST(request: Request) {
     }
 
     // Build content for OCR (front + bottom + expiry only)
-    const ocrContent: Anthropic.Messages.ContentBlockParam[] = [];
+    const ocrContent: Array<
+      | { type: 'text'; text: string }
+      | {
+          type: 'image';
+          source: {
+            type: 'base64';
+            media_type: 'image/jpeg' | 'image/png' | 'image/webp';
+            data: string;
+          };
+        }
+    > = [];
     const ingredientsImage = images.find((img) => img.type === 'ingredients');
     const ocrImages = images.filter((img) => img.type !== 'ingredients');
 
@@ -152,7 +162,17 @@ export async function POST(request: Request) {
     ocrContent.push({ type: 'text', text: '請分析以上相片，return JSON結果（只return JSON）。' });
 
     // Build ingredients content
-    const ingContent: Anthropic.Messages.ContentBlockParam[] = [];
+    const ingContent: Array<
+      | { type: 'text'; text: string }
+      | {
+          type: 'image';
+          source: {
+            type: 'base64';
+            media_type: 'image/jpeg' | 'image/png' | 'image/webp';
+            data: string;
+          };
+        }
+    > = [];
     if (ingredientsImage) {
       ingContent.push({ type: 'text', text: '[INGREDIENTS]' });
       ingContent.push({
