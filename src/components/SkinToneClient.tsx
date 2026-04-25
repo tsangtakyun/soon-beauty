@@ -20,6 +20,7 @@ type SuitableShades = ColorProfile['suitable_shades'];
 type AnalysisResult = ColorProfile & {
   season_confidence: 'high' | 'medium' | 'low';
   overall_impression: string;
+  celebrity_references?: string[];
   key_traits: string[];
   notes: string;
   photo_observation?: string | null;
@@ -1091,6 +1092,7 @@ export default function SkinToneClient({
       ...profile,
       season_confidence: profile.season_confidence ?? 'medium',
       overall_impression: profile.overall_impression ?? `你嘅整體氣質最適合走 ${config.short} 色板。`,
+      celebrity_references: profile.celebrity_references ?? [],
       key_traits: profile.key_traits ?? [],
       notes: profile.notes ?? '分析結果已同步到你的色彩檔案。',
       photo_observation: null,
@@ -1144,7 +1146,7 @@ export default function SkinToneClient({
                   <span className="rounded-full bg-white px-3 py-1 text-xs text-[#7a6068]">{CONFIDENCE_LABELS[latestResult.season_confidence]}</span>
                 </div>
 
-                <h2 className="tone-display mt-4 max-w-xl">{latestResult.overall_impression}</h2>
+                <h2 className="tone-display tone-display-compact mt-4 max-w-xl">{latestResult.overall_impression}</h2>
                 <p className="tone-body mt-5 max-w-xl">{profile.season_description}</p>
               </div>
 
@@ -1156,6 +1158,28 @@ export default function SkinToneClient({
             </div>
           </div>
         </section>
+
+        {latestResult.celebrity_references && latestResult.celebrity_references.length > 0 && (
+          <section className="tone-panel p-5 sm:p-6">
+            <div className="tone-kicker">Style Reference</div>
+            <h3 className="mt-2 text-[28px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              明星氣質參考
+            </h3>
+            <p className="mt-3 text-sm leading-6 text-[#7a6068]">
+              呢一欄只係提供風格聯想同氣質方向，唔代表真人長相比對。
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {latestResult.celebrity_references.map((name) => (
+                <span
+                  key={name}
+                  className="inline-flex rounded-full border border-[#e6dbd4] bg-[#fff9f4] px-4 py-2.5 text-sm text-[#6e545c]"
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="tone-panel p-5 sm:p-6">
           <div className="tone-kicker">Report Summary</div>

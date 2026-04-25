@@ -224,6 +224,7 @@ export type ColorProfile = {
   selfie_url?: string | null;
   season_confidence?: 'high' | 'medium' | 'low';
   overall_impression?: string;
+  celebrity_references?: string[];
   key_traits?: string[];
   notes?: string;
   photo_observation?: string | null;

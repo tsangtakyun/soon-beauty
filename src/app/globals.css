@@ -339,6 +339,11 @@
   color: #1a1218;
 }
 
+.tone-display-compact {
+  font-size: clamp(1.3rem, 2.7vw, 2rem);
+  line-height: 1.12;
+}
+
 .tone-title {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: clamp(1.8rem, 3vw, 2.4rem);

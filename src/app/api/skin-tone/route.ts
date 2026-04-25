@@ -16,6 +16,10 @@ const ANALYSIS_SCHEMA = {
       undertone: { type: 'string', enum: ['yellow', 'pink', 'olive', 'neutral'] },
       season_description: { type: 'string' },
       overall_impression: { type: 'string' },
+      celebrity_references: {
+        type: 'array',
+        items: { type: 'string' },
+      },
       key_traits: {
         type: 'array',
         items: { type: 'string' },
@@ -102,6 +106,7 @@ const ANALYSIS_SCHEMA = {
       'undertone',
       'season_description',
       'overall_impression',
+      'celebrity_references',
       'key_traits',
       'suitable_shades',
       'avoid_shades',
@@ -187,8 +192,9 @@ function buildPrompt(summary: string) {
     '4. 所有推薦色與避開色請用繁體中文常用色名。',
     '5. suitable_shades 與 recommendations 要可以直接用於前端報告卡。',
     '6. overall_impression 用一至兩句繁體中文書面語，描述整體氣質。',
-    '7. notes 要簡短說明分析限制，例如光線、自拍角度或彩妝干擾。',
-    '8. photo_observation 如沒有特別需要提醒，回 null。',
+    '7. celebrity_references 請提供 2 至 3 個可作氣質或風格參考的女藝人 / 女明星名字，偏向東亞藝人，語氣保守，不要聲稱長相相似，只可作風格聯想。',
+    '8. notes 要簡短說明分析限制，例如光線、自拍角度或彩妝干擾。',
+    '9. photo_observation 如沒有特別需要提醒，回 null。',
     '問卷摘要：',
     summary,
   ].join('\n');
@@ -208,6 +214,7 @@ function normalizeAnalysis(result: ColorAnalysisResult, selfieUrl: string | null
     selfie_url: selfieUrl,
     season_confidence: result.season_confidence,
     overall_impression: result.overall_impression,
+    celebrity_references: result.celebrity_references,
     key_traits: result.key_traits,
     notes: result.notes,
     photo_observation: result.photo_observation,
