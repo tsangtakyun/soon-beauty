@@ -558,6 +558,12 @@ export default function SkinToneClient({
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [profile, setProfile] = useState<ColorProfile | null>(existingProfile);
   const [error, setError] = useState<string | null>(null);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState<string | null>(null);
+  const [demoCards, setDemoCards] = useState<{
+    good: Array<{ label: string; imageUrl: string }>;
+    bad: Array<{ label: string; imageUrl: string }>;
+  } | null>(null);
 
   async function analyse(photoData?: string, photoUrl?: string) {
     const finalSelfieData = photoData ?? selfieData;
@@ -605,7 +611,40 @@ export default function SkinToneClient({
     setSunReaction(null);
     setSelfieData(null);
     setSelfiePreviewUrl(null);
+    setDemoCards(null);
+    setDemoError(null);
     setStage('landing');
+  }
+
+  async function generateDemoCards() {
+    if (!profile?.selfie_url) return;
+
+    setDemoLoading(true);
+    setDemoError(null);
+
+    try {
+      const response = await fetch('/api/skin-tone/generate-demo-cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          selfieUrl: profile.selfie_url,
+          seasonLabel: SEASON_CONFIG[profile.season].label,
+          goodColors: profile.recommendations?.best_colors ?? Object.values(profile.suitable_shades).flat(),
+          badColors: profile.recommendations?.avoid_colors ?? profile.avoid_shades,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? '未能生成 GOOD / BAD 示範卡');
+      }
+
+      setDemoCards(data);
+    } catch (issue) {
+      setDemoError(issue instanceof Error ? issue.message : '未能生成 GOOD / BAD 示範卡');
+    } finally {
+      setDemoLoading(false);
+    }
   }
 
   if (stage === 'landing') {
@@ -1018,10 +1057,10 @@ export default function SkinToneClient({
                 <img
                   src={selfiePreviewUrl}
                   alt="色彩分析自拍"
-                  className="h-full min-h-[320px] w-full rounded-[26px] object-cover"
+                  className="aspect-square w-full rounded-[26px] object-cover"
                 />
               ) : (
-                <div className="flex min-h-[320px] items-center justify-center rounded-[26px] bg-[#fff6f3] text-sm text-[#8b6a60]">
+                <div className="flex aspect-square w-full items-center justify-center rounded-[26px] bg-[#fff6f3] text-sm text-[#8b6a60]">
                   等你下次上傳自然自拍，報告會顯示喺呢度。
                 </div>
               )}
@@ -1082,176 +1121,227 @@ export default function SkinToneClient({
           </div>
         </section>
 
-        <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-5">
-            <section className="tone-panel p-5 sm:p-6">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="tone-kicker">Best Colors</div>
-                  <h3 className="mt-2 text-[28px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                    最佳色彩推薦
-                  </h3>
-                </div>
-              </div>
-
-              <div className="mt-5 rounded-[28px] border border-[#eee3e1] bg-[#fffdfc] p-4">
-                <div className="flex flex-wrap gap-4">
-                  {reportPalette.map((shade) => (
-                    <div key={shade} className="flex min-w-[82px] flex-col items-center gap-2 text-center">
-                      <span
-                        className="inline-block h-14 w-14 rounded-full border border-black/5"
-                        style={{ background: getSwatchColor(shade) }}
-                      />
-                      <span className="text-sm text-[#5f464f]">{shade}</span>
-                    </div>
-                  ))}
-                </div>
-                {latestResult.notes ? (
-                  <p className="mt-4 text-sm leading-6 text-[#7a6068]">{latestResult.notes}</p>
-                ) : null}
-              </div>
-            </section>
-
-            {secondaryPalette.length > 0 && (
-              <section className="tone-panel p-5 sm:p-6">
-                <div className="tone-kicker">Also Works</div>
-                <h3 className="mt-2 text-[24px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                  可延伸嘗試
-                </h3>
-                <div className="mt-5 flex flex-wrap gap-2.5">
-                  {secondaryPalette.map((shade) => (
-                    <span
-                      key={shade}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#eee3e1] bg-white px-3 py-2 text-sm text-[#5f464f]"
-                    >
-                      <span className="inline-block h-5 w-5 rounded-full border border-black/5" style={{ background: getSwatchColor(shade) }} />
-                      {shade}
-                    </span>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <section className="tone-panel p-5 sm:p-6">
-              <div className="tone-kicker">Makeup Guide</div>
+        <section className="tone-panel p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="tone-kicker">Best Colors</div>
               <h3 className="mt-2 text-[28px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                彩妝建議
+                最佳色彩推薦
               </h3>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                {paletteSections.map((section) => (
-                  <div key={section.key} className="rounded-[24px] border border-[#eee3e1] bg-[#fffdfc] p-4">
-                    <div className="mb-3 text-sm font-medium text-[#1a1218]">{section.label}</div>
-                    <div className="space-y-2">
-                      {section.shades.map((shade) => (
-                        <div key={shade} className="inline-flex items-center gap-2 rounded-full border border-[#eee3e1] bg-white px-3 py-2 text-sm text-[#5f464f]">
-                          <span className="inline-block h-4 w-4 rounded-full border border-black/5" style={{ background: getSwatchColor(shade) }} />
-                          {shade}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="tone-panel p-5 sm:p-6">
-              <div className="tone-kicker">Your Products</div>
-              <h3 className="mt-2 text-[28px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                用你現有庫存對照
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-[#7a6068]">
-                會根據產品備註入面嘅「色系」標籤去判斷。如果之後你想，我可以再幫你將呢套匹配邏輯做得更完整。
-              </p>
-
-              <div className="mt-5">
-                {products.length > 0 ? (
-                  <ProductMatchList products={products} profile={profile} />
-                ) : (
-                  <div className="rounded-[28px] bg-[#faf6f5] p-5 text-sm leading-6 text-[#8e727a]">
-                    你而家未有可對照產品。新增產品並加上色系標籤後，呢度會即時變成一份個人化 colour audit。
-                  </div>
-                )}
-              </div>
-            </section>
+            </div>
           </div>
 
-          <div className="space-y-5">
-            <section className="tone-panel tone-panel-soft p-5 sm:p-6">
-              <div className="tone-kicker">Avoid List</div>
-              <h3 className="mt-2 text-[24px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                先避開呢啲色
-              </h3>
-              <div className="mt-5 flex flex-wrap gap-2.5">
-                {avoidPalette.map((shade) => (
+          <div className="mt-5 rounded-[28px] border border-[#eee3e1] bg-[#fffdfc] p-4">
+            <div className="flex flex-wrap gap-4">
+              {reportPalette.map((shade) => (
+                <div key={shade} className="flex min-w-[82px] flex-col items-center gap-2 text-center">
                   <span
-                    key={shade}
-                    className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm"
-                    style={{ borderColor: '#e4d2d6', background: '#fff8fa', color: '#7b5e66' }}
-                  >
-                    <span className="inline-block h-4 w-4 rounded-full" style={{ background: getSwatchColor(shade) }} />
-                    {shade}
-                  </span>
-                ))}
+                    className="inline-block h-14 w-14 rounded-full border border-black/5"
+                    style={{ background: getSwatchColor(shade) }}
+                  />
+                  <span className="text-sm text-[#5f464f]">{shade}</span>
+                </div>
+              ))}
+            </div>
+            {latestResult.notes ? (
+              <p className="mt-4 text-sm leading-6 text-[#7a6068]">{latestResult.notes}</p>
+            ) : null}
+          </div>
+        </section>
+
+        {secondaryPalette.length > 0 && (
+          <section className="tone-panel p-5 sm:p-6">
+            <div className="tone-kicker">Also Works</div>
+            <h3 className="mt-2 text-[24px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              可延伸嘗試
+            </h3>
+            <div className="mt-5 flex flex-wrap gap-2.5">
+              {secondaryPalette.map((shade) => (
+                <span
+                  key={shade}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#eee3e1] bg-white px-3 py-2 text-sm text-[#5f464f]"
+                >
+                  <span className="inline-block h-5 w-5 rounded-full border border-black/5" style={{ background: getSwatchColor(shade) }} />
+                  {shade}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="tone-panel tone-panel-soft p-5 sm:p-6">
+          <div className="tone-kicker">Avoid List</div>
+          <h3 className="mt-2 text-[24px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            先避開呢啲色
+          </h3>
+          <div className="mt-5 flex flex-wrap gap-2.5">
+            {avoidPalette.map((shade) => (
+              <span
+                key={shade}
+                className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm"
+                style={{ borderColor: '#e4d2d6', background: '#fff8fa', color: '#7b5e66' }}
+              >
+                <span className="inline-block h-4 w-4 rounded-full" style={{ background: getSwatchColor(shade) }} />
+                {shade}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="tone-panel p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="tone-kicker">Color Demo</div>
+              <h3 className="mt-2 text-[28px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                GOOD / BAD 顏色示範
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-[#7a6068]">
+                用你嘅自然自拍生成顏色示範卡，幫你更直觀理解咩色會令你更有氣色。
+              </p>
+            </div>
+            <button onClick={generateDemoCards} className="btn-primary" disabled={demoLoading || !profile.selfie_url}>
+              {demoLoading ? '生成中...' : '生成示範卡'}
+            </button>
+          </div>
+
+          {demoError && (
+            <div className="mt-4 rounded-[20px] border border-[#f1d5cc] bg-[#fff6f2] p-4 text-sm leading-6 text-[#a45c35]">
+              {demoError}
+            </div>
+          )}
+
+          {demoCards ? (
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-[28px] border border-[#f1d2cb] bg-[#fff9f7] p-4">
+                <div className="mb-3 text-lg font-medium text-[#d17266]">GOOD 適合的色彩</div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {demoCards.good.map((item) => (
+                    <div key={`good-${item.label}`} className="rounded-[22px] bg-white p-3">
+                      <img src={item.imageUrl} alt={item.label} className="aspect-square w-full rounded-[18px] object-cover" />
+                      <div className="mt-3 text-center text-sm font-medium text-[#5f464f]">{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[28px] border border-[#d8dfee] bg-[#f9fbff] p-4">
+                <div className="mb-3 text-lg font-medium text-[#5d7aa6]">BAD 不太適合的色彩</div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {demoCards.bad.map((item) => (
+                    <div key={`bad-${item.label}`} className="rounded-[22px] bg-white p-3">
+                      <img src={item.imageUrl} alt={item.label} className="aspect-square w-full rounded-[18px] object-cover" />
+                      <div className="mt-3 text-center text-sm font-medium text-[#5f464f]">{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-5 rounded-[24px] border border-dashed border-[#deccb9] bg-[#fffdf9] p-5 text-sm leading-6 text-[#8b725c]">
+              生成後會顯示 2 張適合色與 2 張不太適合色示範卡，全部都會以 1:1 形式顯示。
+            </div>
+          )}
+        </section>
+
+        <section className="tone-panel p-5 sm:p-6">
+          <div className="tone-kicker">Makeup Guide</div>
+          <h3 className="mt-2 text-[28px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            彩妝建議
+          </h3>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {paletteSections.map((section) => (
+              <div key={section.key} className="rounded-[24px] border border-[#eee3e1] bg-[#fffdfc] p-4">
+                <div className="mb-3 text-sm font-medium text-[#1a1218]">{section.label}</div>
+                <div className="space-y-2">
+                  {section.shades.map((shade) => (
+                    <div key={shade} className="inline-flex items-center gap-2 rounded-full border border-[#eee3e1] bg-white px-3 py-2 text-sm text-[#5f464f]">
+                      <span className="inline-block h-4 w-4 rounded-full border border-black/5" style={{ background: getSwatchColor(shade) }} />
+                      {shade}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {profile.recommendations && (
+          <>
+            <section className="tone-panel p-5 sm:p-6">
+              <div className="tone-kicker">Hair & Style</div>
+              <h3 className="mt-2 text-[24px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                髮色與飾物建議
+              </h3>
+              <div className="mt-5 space-y-4 text-sm leading-6 text-[#5f464f]">
+                <div>
+                  <div className="mb-2 font-medium text-[#1a1218]">推薦髮色</div>
+                  <div className="flex flex-wrap gap-2.5">
+                    {profile.recommendations.hair_colors.map((item) => (
+                      <span key={item} className="rounded-full bg-[#fff8f2] px-3 py-2">{item}</span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-2 font-medium text-[#1a1218]">金屬與飾物</div>
+                  <div className="flex flex-wrap gap-2.5">
+                    {[...profile.recommendations.jewelry_metals, ...profile.recommendations.jewelry_styles].map((item) => (
+                      <span key={item} className="rounded-full bg-[#fff8f2] px-3 py-2">{item}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
             </section>
 
-            {profile.recommendations && (
-              <>
-                <section className="tone-panel p-5 sm:p-6">
-                  <div className="tone-kicker">Hair & Style</div>
-                  <h3 className="mt-2 text-[24px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                    髮色與飾物建議
-                  </h3>
-                  <div className="mt-5 space-y-4 text-sm leading-6 text-[#5f464f]">
-                    <div>
-                      <div className="mb-2 font-medium text-[#1a1218]">推薦髮色</div>
-                      <div className="flex flex-wrap gap-2.5">
-                        {profile.recommendations.hair_colors.map((item) => (
-                          <span key={item} className="rounded-full bg-[#fff8f2] px-3 py-2">{item}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="mb-2 font-medium text-[#1a1218]">金屬與飾物</div>
-                      <div className="flex flex-wrap gap-2.5">
-                        {[...profile.recommendations.jewelry_metals, ...profile.recommendations.jewelry_styles].map((item) => (
-                          <span key={item} className="rounded-full bg-[#fff8f2] px-3 py-2">{item}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="tone-panel p-5 sm:p-6">
-                  <div className="tone-kicker">Daily Styling</div>
-                  <h3 className="mt-2 text-[24px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                    穿搭與小提醒
-                  </h3>
-                  <div className="mt-5 space-y-4">
-                    <div>
-                      <div className="mb-2 text-sm font-medium text-[#1a1218]">服裝色彩</div>
-                      <div className="flex flex-wrap gap-2.5">
-                        {profile.recommendations.clothing_colors.map((item) => (
-                          <span key={item} className="rounded-full bg-[#fff8f2] px-3 py-2 text-sm text-[#5f464f]">{item}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="mb-2 text-sm font-medium text-[#1a1218]">整體小提醒</div>
-                      <div className="space-y-2">
-                        {profile.recommendations.quick_tips.map((tip) => (
-                          <div key={tip} className="rounded-[18px] bg-[#fffdfc] p-3 text-sm leading-6 text-[#5f464f]">
-                            {tip}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              </>
-            )}
-
             <section className="tone-panel p-5 sm:p-6">
+              <div className="tone-kicker">Daily Styling</div>
+              <h3 className="mt-2 text-[24px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                穿搭與小提醒
+              </h3>
+              <div className="mt-5 space-y-4">
+                <div>
+                  <div className="mb-2 text-sm font-medium text-[#1a1218]">服裝色彩</div>
+                  <div className="flex flex-wrap gap-2.5">
+                    {profile.recommendations.clothing_colors.map((item) => (
+                      <span key={item} className="rounded-full bg-[#fff8f2] px-3 py-2 text-sm text-[#5f464f]">{item}</span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-2 text-sm font-medium text-[#1a1218]">整體小提醒</div>
+                  <div className="space-y-2">
+                    {profile.recommendations.quick_tips.map((tip) => (
+                      <div key={tip} className="rounded-[18px] bg-[#fffdfc] p-3 text-sm leading-6 text-[#5f464f]">
+                        {tip}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+
+        <section className="tone-panel p-5 sm:p-6">
+          <div className="tone-kicker">Your Products</div>
+          <h3 className="mt-2 text-[28px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            用你現有庫存對照
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-[#7a6068]">
+            會根據產品備註入面嘅「色系」標籤去判斷。如果之後你想，我可以再幫你將呢套匹配邏輯做得更完整。
+          </p>
+
+          <div className="mt-5">
+            {products.length > 0 ? (
+              <ProductMatchList products={products} profile={profile} />
+            ) : (
+              <div className="rounded-[28px] bg-[#faf6f5] p-5 text-sm leading-6 text-[#8e727a]">
+                你而家未有可對照產品。新增產品並加上色系標籤後，呢度會即時變成一份個人化 colour audit。
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="tone-panel p-5 sm:p-6">
               <div className="tone-kicker">Reading Notes</div>
               <div className="mt-4 space-y-3">
                 {[
@@ -1283,9 +1373,7 @@ export default function SkinToneClient({
               <div className="mt-4 rounded-[22px] bg-[#1e1820] p-4 text-sm leading-6 text-[#f8eef1]">
                 結果已自動同步到你嘅色彩檔案。之後做產品掃描或分析時，可以用呢份 profile 做配色參考。
               </div>
-            </section>
-          </div>
-        </div>
+        </section>
       </div>
     );
   }
