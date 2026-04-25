@@ -162,6 +162,28 @@ export type SuitableShades = {
   foundation: string[];
 };
 
+export type ColorAnalysisScores = {
+  warmth: number;
+  contrast: number;
+  clarity: number;
+};
+
+export type ColorRecommendations = {
+  best_colors: string[];
+  secondary_colors: string[];
+  avoid_colors: string[];
+  base_makeup: string[];
+  blush: string[];
+  eyeshadow: string[];
+  lip: string[];
+  hair_colors: string[];
+  nail_colors: string[];
+  clothing_colors: string[];
+  jewelry_metals: string[];
+  jewelry_styles: string[];
+  quick_tips: string[];
+};
+
 export type ColorProfile = {
   season: 'spring' | 'summer' | 'autumn' | 'winter';
   warm_cool: 'warm' | 'cool' | 'neutral';
@@ -171,6 +193,14 @@ export type ColorProfile = {
   avoid_shades: string[];
   season_description: string;
   analysed_at?: string;
+  selfie_url?: string | null;
+  season_confidence?: 'high' | 'medium' | 'low';
+  overall_impression?: string;
+  key_traits?: string[];
+  notes?: string;
+  photo_observation?: string | null;
+  scores?: ColorAnalysisScores;
+  recommendations?: ColorRecommendations;
 };
 
 export type Product = Database['public']['Tables']['products']['Row'];

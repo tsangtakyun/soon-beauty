@@ -19,21 +19,25 @@ import type { ColorProfile, Product } from '@/types/database';
 type SuitableShades = ColorProfile['suitable_shades'];
 type AnalysisResult = ColorProfile & {
   season_confidence: 'high' | 'medium' | 'low';
-  lama_message: string;
+  overall_impression: string;
+  key_traits: string[];
   notes: string;
   photo_observation?: string | null;
 };
 type VeinColor = 'blue_purple' | 'green' | 'unclear';
-type Stage = 'landing' | 'vein' | 'jewelry' | 'undertone' | 'wrist' | 'face' | 'analyzing' | 'result';
+type Stage = 'landing' | 'vein' | 'jewelry' | 'undertone' | 'contrast' | 'sun' | 'selfie' | 'analyzing' | 'result';
 type JewelryPref = 'gold' | 'silver' | 'both';
 type UndertonePref = 'yellow' | 'pink' | 'olive' | 'unclear';
+type ContrastPref = 'soft' | 'balanced' | 'high';
+type SunReaction = 'burns_easy' | 'tan_easy' | 'both' | 'unclear';
 
 const STAGE_INDEX: Record<Exclude<Stage, 'landing' | 'analyzing' | 'result'>, number> = {
   vein: 1,
   jewelry: 2,
   undertone: 3,
-  wrist: 4,
-  face: 5,
+  contrast: 4,
+  sun: 5,
+  selfie: 6,
 };
 
 const SEASON_CONFIG: Record<ColorProfile['season'], {
@@ -184,8 +188,22 @@ function getUndertoneHint(pref: UndertonePref | null) {
   return '底色判斷會直接影響粉底、胭脂同唇色建議。';
 }
 
+function getContrastHint(pref: ContrastPref | null) {
+  if (pref === 'soft') return '你通常更襯柔和、霧面、低對比配色，太黑白分明反而搶咗你個人感。';
+  if (pref === 'high') return '你通常可以撐得起明顯對比感，清晰度高嘅顏色更容易令你醒神。';
+  if (pref === 'balanced') return '你應該落喺中間值，最適合乾淨但唔過份強烈嘅配色。';
+  return '對比感會影響你襯唔襯得起黑白、深淺撞色，以及妝容清晰度。';
+}
+
+function getSunHint(pref: SunReaction | null) {
+  if (pref === 'burns_easy') return '通常偏冷或偏淺底色機會較高，建議留意灰粉、冷柔色會唔會更自然。';
+  if (pref === 'tan_easy') return '通常偏暖或偏金調機會較高，奶茶、焦糖、大地色往往更和諧。';
+  if (pref === 'both') return '你可能落喺中間值，最後要靠自拍同其他答案一齊綜合判斷。';
+  return '曬後反應可以幫手補足冷暖調與膚色深淺判斷。';
+}
+
 function getQuestionProgress(stage: Exclude<Stage, 'landing' | 'analyzing' | 'result'>) {
-  return Math.round((STAGE_INDEX[stage] / 5) * 100);
+  return Math.round((STAGE_INDEX[stage] / 6) * 100);
 }
 
 function QuestionShell({
@@ -209,7 +227,7 @@ function QuestionShell({
       <div className="tone-panel p-6 sm:p-7">
         <div className="mb-6 flex items-center justify-between gap-3">
           <div>
-            <div className="tone-kicker">Step {STAGE_INDEX[stage]} / 5</div>
+            <div className="tone-kicker">Step {STAGE_INDEX[stage]} / 6</div>
             <h2 className="tone-title mt-2">{title}</h2>
             <p className="tone-body mt-2 max-w-xl">{body}</p>
           </div>
@@ -292,6 +310,7 @@ function ImageCapture({
   onCapture,
   onBack,
   previewLabel,
+  captureMode = 'user',
 }: {
   title: string;
   subtitle: string;
@@ -301,6 +320,7 @@ function ImageCapture({
   onCapture: (data: string, url: string) => void;
   onBack: () => void;
   previewLabel: string;
+  captureMode?: 'user' | 'environment';
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<string | null>(null);
@@ -425,7 +445,7 @@ function ImageCapture({
         ref={camRef}
         type="file"
         accept="image/*"
-        capture="environment"
+        capture={captureMode}
         className="hidden"
         onChange={(event) => event.target.files?.[0] && handleFile(event.target.files[0])}
       />
@@ -531,14 +551,17 @@ export default function SkinToneClient({
   const [veinColor, setVeinColor] = useState<VeinColor | null>(null);
   const [jewelryPref, setJewelryPref] = useState<JewelryPref | null>(null);
   const [undertonePref, setUndertonePref] = useState<UndertonePref | null>(null);
-  const [wristData, setWristData] = useState<string | null>(null);
-  const [faceData, setFaceData] = useState<string | null>(null);
+  const [contrastPref, setContrastPref] = useState<ContrastPref | null>(null);
+  const [sunReaction, setSunReaction] = useState<SunReaction | null>(null);
+  const [selfieData, setSelfieData] = useState<string | null>(null);
+  const [selfiePreviewUrl, setSelfiePreviewUrl] = useState<string | null>(existingProfile?.selfie_url ?? null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [profile, setProfile] = useState<ColorProfile | null>(existingProfile);
   const [error, setError] = useState<string | null>(null);
 
-  async function analyse() {
-    if (!wristData || !faceData) return;
+  async function analyse(photoData?: string, photoUrl?: string) {
+    const finalSelfieData = photoData ?? selfieData;
+    if (!finalSelfieData || !veinColor || !jewelryPref || !undertonePref || !contrastPref || !sunReaction) return;
 
     setStage('analyzing');
     setError(null);
@@ -548,12 +571,13 @@ export default function SkinToneClient({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          wristData,
-          faceData,
+          selfieData: finalSelfieData,
           mediaType: 'image/jpeg',
           veinColor,
           jewelryPref,
           undertonePref,
+          contrastPref,
+          sunReaction,
         }),
       });
 
@@ -562,10 +586,12 @@ export default function SkinToneClient({
 
       setResult(data.result);
       setProfile(data.result);
+      setSelfieData(finalSelfieData);
+      setSelfiePreviewUrl(data.result.selfie_url ?? photoUrl ?? selfiePreviewUrl ?? null);
       setStage('result');
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : '分析失敗');
-      setStage('face');
+      setStage('selfie');
     }
   }
 
@@ -575,8 +601,10 @@ export default function SkinToneClient({
     setVeinColor(null);
     setJewelryPref(null);
     setUndertonePref(null);
-    setWristData(null);
-    setFaceData(null);
+    setContrastPref(null);
+    setSunReaction(null);
+    setSelfieData(null);
+    setSelfiePreviewUrl(null);
     setStage('landing');
   }
 
@@ -589,7 +617,7 @@ export default function SkinToneClient({
               <div className="tone-kicker">Personal Color Studio</div>
               <h2 className="tone-display max-w-xl">重做你嘅膚色分析流程，唔止分四季，仲直接幫你揀色。</h2>
               <p className="tone-body max-w-xl">
-                呢個版本會先收集問卷，再用手腕同臉部相片交叉判斷，最後將結果整理成實用配色板、避雷色，同你現有產品嘅適合度。
+                呢個版本會先完成五條問題，再用自然自拍補足分析，最後整理成一份更完整、更接近個人報告書嘅色彩分析結果。
               </p>
 
               <div className="flex flex-wrap gap-3">
@@ -606,9 +634,9 @@ export default function SkinToneClient({
 
               <div className="grid gap-3 sm:grid-cols-3">
                 {[
-                  { icon: <Sparkles className="h-5 w-5" />, title: '三重驗證', desc: '問卷 + 手腕 + 臉部白紙校色' },
-                  { icon: <Palette className="h-5 w-5" />, title: '實用配色', desc: '唇色、腮紅、眼影同粉底方向' },
-                  { icon: <ScanFace className="h-5 w-5" />, title: '產品匹配', desc: '即時檢查你現有庫存有冇撞色' },
+                  { icon: <Sparkles className="h-5 w-5" />, title: '五題問卷', desc: '先收集你對自己膚色最有感覺嘅線索' },
+                  { icon: <ScanFace className="h-5 w-5" />, title: '自然自拍', desc: '再用一張自然光自拍補足明度與氣質判斷' },
+                  { icon: <Palette className="h-5 w-5" />, title: '完整報告', desc: '輸出色票、避雷色與彩妝配搭建議' },
                 ].map((item) => (
                   <div key={item.title} className="tone-mini-card">
                     <div className="tone-mini-icon">{item.icon}</div>
@@ -623,10 +651,10 @@ export default function SkinToneClient({
               <div className="tone-kicker">What You’ll Get</div>
               <div className="mt-3 space-y-3">
                 {[
-                  ['你的季節型 + 冷暖調', '唔止得一個 label，會一齊睇膚色深淺同底色。'],
+                  ['你的季節型 + 冷暖調', '會一齊判斷底色、膚色深淺、對比度與清晰度。'],
                   ['個人色板', '每類彩妝都有建議色系，可以直接拎去揀貨。'],
                   ['避雷提醒', '顏色一眼睇到，唔使再靠記憶。'],
-                  ['產品庫對照', '幫你搵出最襯你同最易顯灰嘅產品。'],
+                  ['延伸建議', '會整理髮色、服裝、飾物與日常配搭方向。'],
                 ].map(([title, desc], index) => (
                   <div key={title} className="flex items-start gap-3 rounded-[26px] bg-[#fffaf8] p-4">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#b06070] text-sm font-medium text-white">
@@ -785,36 +813,119 @@ export default function SkinToneClient({
           onClick={() => setUndertonePref('unclear')}
           lead={<span>🤍</span>}
           title="唔肯定"
-          description="之後交俾相片判斷，系統會先根據手腕底色再交叉核對。"
+          description="之後交俾自拍同其他答案一齊綜合判斷。"
         />
 
-        <button onClick={() => setStage('wrist')} disabled={!undertonePref} className="btn-primary mt-2 w-full sm:w-auto">
-          開始影相
+        <button onClick={() => setStage('contrast')} disabled={!undertonePref} className="btn-primary mt-2 w-full sm:w-auto">
+          下一步
           <ChevronRight className="ml-1 h-4 w-4" />
         </button>
       </QuestionShell>
     );
   }
 
-  if (stage === 'wrist') {
+  if (stage === 'contrast') {
     return (
-      <ImageCapture
-        subtitle="Step 4 / 5"
-        title="拍攝手腕內側"
-        instruction="將手腕放鬆，喺自然光下影到手腕內側皮膚同靜脈。呢張相主要用嚟判斷底色同冷暖調。"
-        tip="最好唔好開美肌或 HDR，鏡頭離皮膚約 20-30cm，避免過近變色。"
-        note="手腕相對臉部少咗胭脂、唇色、泛紅干擾，會更容易睇到底色，所以我哋將佢放喺高優先級。"
-        onCapture={(data) => {
-          setWristData(data);
-          setStage('face');
-        }}
+      <QuestionShell
+        stage="contrast"
+        title="你覺得自己更襯柔和色，定係有明顯對比感嘅配色？"
+        body="呢題會幫我哋判斷你嘅對比度。有人襯得起黑白分明，有人反而更適合奶茶、霧粉、低對比。"
         onBack={() => setStage('undertone')}
-        previewLabel="手腕預覽"
-      />
+        aside={
+          <>
+            <div className="tone-kicker">Contrast Reading</div>
+            <h3 className="mt-2 text-[22px] font-medium text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              對比感會影響你襯色力度
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-[#7a6068]">{getContrastHint(contrastPref)}</p>
+          </>
+        }
+      >
+        <OptionCard
+          selected={contrastPref === 'soft'}
+          onClick={() => setContrastPref('soft')}
+          lead={<span>☁️</span>}
+          title="偏柔和"
+          description="奶茶、豆沙、霧面感配色通常更自然，太硬朗反而容易搶人。"
+        />
+        <OptionCard
+          selected={contrastPref === 'balanced'}
+          onClick={() => setContrastPref('balanced')}
+          lead={<span>⚖️</span>}
+          title="中等平衡"
+          description="既可以駕馭柔和色，亦可以撐起少量清晰度，屬於最百搭一型。"
+        />
+        <OptionCard
+          selected={contrastPref === 'high'}
+          onClick={() => setContrastPref('high')}
+          lead={<span>⚡</span>}
+          title="對比感高"
+          description="黑白、深淺撞色或輪廓清晰嘅妝容通常更令你醒神。"
+        />
+
+        <button onClick={() => setStage('sun')} disabled={!contrastPref} className="btn-primary mt-2 w-full sm:w-auto">
+          下一步
+          <ChevronRight className="ml-1 h-4 w-4" />
+        </button>
+      </QuestionShell>
     );
   }
 
-  if (stage === 'face') {
+  if (stage === 'sun') {
+    return (
+      <QuestionShell
+        stage="sun"
+        title="你平時曬太陽之後，皮膚比較容易點樣反應？"
+        body="曬後反應可以幫我哋補足冷暖調、膚色深淺同整體明度判斷。憑平時印象揀最接近即可。"
+        onBack={() => setStage('contrast')}
+        aside={
+          <>
+            <div className="tone-kicker">Sun Reaction</div>
+            <h3 className="mt-2 text-[22px] font-medium text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              曬後狀態都係重要線索
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-[#7a6068]">{getSunHint(sunReaction)}</p>
+          </>
+        }
+      >
+        <OptionCard
+          selected={sunReaction === 'burns_easy'}
+          onClick={() => setSunReaction('burns_easy')}
+          lead={<span>🌤️</span>}
+          title="容易泛紅 / 曬傷"
+          description="通常先變紅，再慢慢退，唔係好容易直接曬成健康古銅色。"
+        />
+        <OptionCard
+          selected={sunReaction === 'tan_easy'}
+          onClick={() => setSunReaction('tan_easy')}
+          lead={<span>🌞</span>}
+          title="容易曬成啡金色"
+          description="通常比較快有小麥或金調感，整體較少紅腫。"
+        />
+        <OptionCard
+          selected={sunReaction === 'both'}
+          onClick={() => setSunReaction('both')}
+          lead={<span>🌗</span>}
+          title="兩種都會"
+          description="有時會先紅，再慢慢變深色，或者視乎季節同時都有。"
+        />
+        <OptionCard
+          selected={sunReaction === 'unclear'}
+          onClick={() => setSunReaction('unclear')}
+          lead={<span>🤍</span>}
+          title="唔太記得"
+          description="唔緊要，自拍同前面幾題已經足夠提供好多線索。"
+        />
+
+        <button onClick={() => setStage('selfie')} disabled={!sunReaction} className="btn-primary mt-2 w-full sm:w-auto">
+          上傳自然自拍
+          <ChevronRight className="ml-1 h-4 w-4" />
+        </button>
+      </QuestionShell>
+    );
+  }
+
+  if (stage === 'selfie') {
     return (
       <div className="space-y-4">
         {error && (
@@ -823,17 +934,19 @@ export default function SkinToneClient({
           </div>
         )}
         <ImageCapture
-          subtitle="Step 5 / 5"
-          title="拍攝臉部正面"
-          instruction="請手持一張白紙放近面頰或下巴，喺自然光下正面拍攝。白紙可以幫助 AI 校正光線色溫，同時判斷你嘅膚色深淺。"
-          tip="素顏或淡妝最好，白紙要一齊入鏡，避免逆光同太重陰影。"
-          note="呢張相唔係單獨決定結果，而係用嚟交叉比對整體膚色深淺、明度同面部偏紅情況。"
-          onCapture={(data) => {
-            setFaceData(data);
-            void analyse();
+          subtitle="Step 6 / 6"
+          title="上傳一張自然自拍"
+          instruction="請喺自然光下上傳正面自拍，盡量唔好開美顏、濾鏡或太重妝。呢張相會用作整體膚色、明度、清晰度同氣質分析。"
+          tip="背景簡單啲會更好，最好見到完整面部輪廓，避免逆光、偏黃燈光或過度修圖。"
+          note="呢張自拍會成為分析報告主圖，所以建議用你覺得最自然、最接近日常真實膚色嘅一張。"
+          onCapture={(data, url) => {
+            setSelfieData(data);
+            setSelfiePreviewUrl(url);
+            void analyse(data, url);
           }}
-          onBack={() => setStage('wrist')}
-          previewLabel="臉部預覽"
+          onBack={() => setStage('sun')}
+          previewLabel="自拍預覽"
+          captureMode="user"
         />
       </div>
     );
@@ -847,13 +960,13 @@ export default function SkinToneClient({
         </div>
         <h2 className="tone-title mt-5">AI 正喺幫你交叉分析膚色</h2>
         <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-[#7a6068]">
-          會同時參考問卷、手腕底色、臉部相片同白紙校色結果。正常大約 15 至 20 秒完成。
+          會同時參考五條問卷答案同自然自拍，整理出季節型、色板、避雷色同整體搭配方向。正常大約 15 至 20 秒完成。
         </p>
         <div className="mx-auto mt-8 grid max-w-2xl gap-3 text-left sm:grid-cols-3">
           {[
-            '確認靜脈與飾物偏好有冇互相支持',
-            '比對手腕底色同面部明度',
-            '整理成實用配色、避雷色同產品匹配',
+            '綜合五條問卷線索，建立冷暖調與對比度輪廓',
+            '讀取自然自拍，補足膚色深淺與清晰度判斷',
+            '整理成實用配色、避雷色同延伸建議',
           ].map((item) => (
             <div key={item} className="rounded-[24px] bg-[#fff8fa] p-4 text-sm leading-6 text-[#7a6068]">
               <div className="mb-2 h-1.5 w-10 rounded-full bg-[#b06070]" />
@@ -869,10 +982,12 @@ export default function SkinToneClient({
     const config = SEASON_CONFIG[profile.season];
     const latestResult = result ?? {
       ...profile,
-      season_confidence: 'medium',
-      lama_message: `${config.short}通常會同你幾夾，之後可以用下面色板慢慢試真身效果。`,
-      notes: '分析結果已同步到你的色彩檔案。',
+      season_confidence: profile.season_confidence ?? 'medium',
+      overall_impression: profile.overall_impression ?? `你嘅整體氣質最適合走 ${config.short} 色板。`,
+      key_traits: profile.key_traits ?? [],
+      notes: profile.notes ?? '分析結果已同步到你的色彩檔案。',
       photo_observation: null,
+      scores: profile.scores ?? { warmth: 3, contrast: 3, clarity: 3 },
     } satisfies AnalysisResult;
 
     const paletteSections = Object.entries(profile.suitable_shades).map(([category, shades]) => ({
@@ -881,65 +996,156 @@ export default function SkinToneClient({
       shades,
     }));
 
+    const reportPalette = profile.recommendations?.best_colors?.length
+      ? profile.recommendations.best_colors
+      : Object.values(profile.suitable_shades).flat().slice(0, 8);
+
+    const secondaryPalette = profile.recommendations?.secondary_colors ?? [];
+    const avoidPalette = profile.recommendations?.avoid_colors ?? profile.avoid_shades;
+
+    const reportCards = [
+      ['暖色調', latestResult.scores?.warmth ?? 3],
+      ['對比度', latestResult.scores?.contrast ?? 3],
+      ['清晰度', latestResult.scores?.clarity ?? 3],
+    ] as const;
+
     return (
       <div className="space-y-5">
         <section className="tone-result-hero" style={{ background: config.glow }}>
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="tone-kicker">Your Color Direction</div>
-              <div className="mt-3 inline-flex items-center gap-3 rounded-full border border-white/60 bg-white/70 px-4 py-2 text-sm font-medium text-[#1a1218] backdrop-blur-sm">
-                <span className="text-xl">{config.emoji}</span>
-                {config.label}
-                <span className="rounded-full bg-white px-3 py-1 text-xs text-[#7a6068]">{CONFIDENCE_LABELS[latestResult.season_confidence]}</span>
-              </div>
-
-              <h2 className="tone-display mt-4 max-w-xl">你嘅整體氣質最適合走 {config.short} 色板。</h2>
-              <p className="tone-body mt-3 max-w-xl">{profile.season_description}</p>
-
-              <div className="mt-5 rounded-[28px] border border-white/55 bg-white/78 p-4 text-sm leading-7 text-[#5d424b] backdrop-blur-sm">
-                {latestResult.lama_message}
-              </div>
+          <div className="grid gap-6 lg:grid-cols-[0.88fr_1.12fr] lg:items-stretch">
+            <div className="overflow-hidden rounded-[32px] border border-white/50 bg-white/70 p-3 backdrop-blur-sm">
+              {selfiePreviewUrl ? (
+                <img
+                  src={selfiePreviewUrl}
+                  alt="色彩分析自拍"
+                  className="h-full min-h-[320px] w-full rounded-[26px] object-cover"
+                />
+              ) : (
+                <div className="flex min-h-[320px] items-center justify-center rounded-[26px] bg-[#fff6f3] text-sm text-[#8b6a60]">
+                  等你下次上傳自然自拍，報告會顯示喺呢度。
+                </div>
+              )}
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button onClick={restart} className="btn-secondary">
-                重新分析
-              </button>
-            </div>
-          </div>
+            <div className="flex flex-col justify-between">
+              <div>
+                <div className="tone-kicker">Personal Color Report</div>
+                <div className="mt-3 inline-flex items-center gap-3 rounded-full border border-white/60 bg-white/70 px-4 py-2 text-sm font-medium text-[#1a1218] backdrop-blur-sm">
+                  <span className="text-xl">{config.emoji}</span>
+                  {config.label}
+                  <span className="rounded-full bg-white px-3 py-1 text-xs text-[#7a6068]">{CONFIDENCE_LABELS[latestResult.season_confidence]}</span>
+                </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <ResultTag label="冷暖調" value={TONE_LABELS[profile.warm_cool]} />
-            <ResultTag label="膚色深淺" value={DEPTH_LABELS[profile.skin_depth]} />
-            <ResultTag label="底色" value={UNDERTONE_LABELS[profile.undertone]} />
-            <ResultTag label="分析時間" value={profile.analysed_at ? new Date(profile.analysed_at).toLocaleDateString('zh-HK') : '剛剛完成'} />
+                <h2 className="tone-display mt-4 max-w-xl">{latestResult.overall_impression}</h2>
+                <p className="tone-body mt-3 max-w-xl">{profile.season_description}</p>
+
+                {latestResult.key_traits?.length ? (
+                  <div className="mt-5 flex flex-wrap gap-2.5">
+                    {latestResult.key_traits.map((trait) => (
+                      <span
+                        key={trait}
+                        className="inline-flex rounded-full border border-white/55 bg-white/72 px-3 py-2 text-sm text-[#6e545c]"
+                      >
+                        {trait}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                {reportCards.map(([label, score]) => (
+                  <div key={label} className="rounded-[24px] border border-white/55 bg-white/78 p-4 backdrop-blur-sm">
+                    <div className="text-sm font-medium text-[#1a1218]">{label}</div>
+                    <div className="mt-3 flex gap-2">
+                      {Array.from({ length: 5 }).map((_, index) => (
+                        <span
+                          key={`${label}-${index}`}
+                          className="h-3 w-3 rounded-full"
+                          style={{ background: index < score ? config.accent : '#f0e4df' }}
+                        />
+                      ))}
+                    </div>
+                    <div className="mt-3 text-2xl font-medium text-[#5c4035]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                      {score} / 5
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button onClick={restart} className="btn-secondary">
+                  重新分析
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
-        <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
+        <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-5">
             <section className="tone-panel p-5 sm:p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="tone-kicker">Personal Palette</div>
+                  <div className="tone-kicker">Best Colors</div>
                   <h3 className="mt-2 text-[28px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                    你最值得先試嘅色
+                    最佳色彩推薦
                   </h3>
                 </div>
               </div>
 
-              <div className="mt-5 space-y-4">
+              <div className="mt-5 rounded-[28px] border border-[#eee3e1] bg-[#fffdfc] p-4">
+                <div className="flex flex-wrap gap-4">
+                  {reportPalette.map((shade) => (
+                    <div key={shade} className="flex min-w-[82px] flex-col items-center gap-2 text-center">
+                      <span
+                        className="inline-block h-14 w-14 rounded-full border border-black/5"
+                        style={{ background: getSwatchColor(shade) }}
+                      />
+                      <span className="text-sm text-[#5f464f]">{shade}</span>
+                    </div>
+                  ))}
+                </div>
+                {latestResult.notes ? (
+                  <p className="mt-4 text-sm leading-6 text-[#7a6068]">{latestResult.notes}</p>
+                ) : null}
+              </div>
+            </section>
+
+            {secondaryPalette.length > 0 && (
+              <section className="tone-panel p-5 sm:p-6">
+                <div className="tone-kicker">Also Works</div>
+                <h3 className="mt-2 text-[24px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                  可延伸嘗試
+                </h3>
+                <div className="mt-5 flex flex-wrap gap-2.5">
+                  {secondaryPalette.map((shade) => (
+                    <span
+                      key={shade}
+                      className="inline-flex items-center gap-2 rounded-full border border-[#eee3e1] bg-white px-3 py-2 text-sm text-[#5f464f]"
+                    >
+                      <span className="inline-block h-5 w-5 rounded-full border border-black/5" style={{ background: getSwatchColor(shade) }} />
+                      {shade}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section className="tone-panel p-5 sm:p-6">
+              <div className="tone-kicker">Makeup Guide</div>
+              <h3 className="mt-2 text-[28px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                彩妝建議
+              </h3>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 {paletteSections.map((section) => (
-                  <div key={section.key} className="rounded-[28px] border border-[#eee3e1] bg-[#fffdfc] p-4">
+                  <div key={section.key} className="rounded-[24px] border border-[#eee3e1] bg-[#fffdfc] p-4">
                     <div className="mb-3 text-sm font-medium text-[#1a1218]">{section.label}</div>
-                    <div className="flex flex-wrap gap-2.5">
+                    <div className="space-y-2">
                       {section.shades.map((shade) => (
-                        <div key={shade} className="inline-flex items-center gap-2 rounded-full border border-[#eee3e1] bg-white px-3 py-2">
-                          <span
-                            className="inline-block h-5 w-5 rounded-full border border-black/5"
-                            style={{ background: getSwatchColor(shade) }}
-                          />
-                          <span className="text-sm text-[#5f464f]">{shade}</span>
+                        <div key={shade} className="inline-flex items-center gap-2 rounded-full border border-[#eee3e1] bg-white px-3 py-2 text-sm text-[#5f464f]">
+                          <span className="inline-block h-4 w-4 rounded-full border border-black/5" style={{ background: getSwatchColor(shade) }} />
+                          {shade}
                         </div>
                       ))}
                     </div>
@@ -954,7 +1160,7 @@ export default function SkinToneClient({
                 用你現有庫存對照
               </h3>
               <p className="mt-2 text-sm leading-6 text-[#7a6068]">
-                依家會根據產品備註入面嘅「色系」標籤去判斷。如果之後你想，我可以再幫你將呢套匹配邏輯做得更完整。
+                會根據產品備註入面嘅「色系」標籤去判斷。如果之後你想，我可以再幫你將呢套匹配邏輯做得更完整。
               </p>
 
               <div className="mt-5">
@@ -976,7 +1182,7 @@ export default function SkinToneClient({
                 先避開呢啲色
               </h3>
               <div className="mt-5 flex flex-wrap gap-2.5">
-                {profile.avoid_shades.map((shade) => (
+                {avoidPalette.map((shade) => (
                   <span
                     key={shade}
                     className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm"
@@ -989,6 +1195,62 @@ export default function SkinToneClient({
               </div>
             </section>
 
+            {profile.recommendations && (
+              <>
+                <section className="tone-panel p-5 sm:p-6">
+                  <div className="tone-kicker">Hair & Style</div>
+                  <h3 className="mt-2 text-[24px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                    髮色與飾物建議
+                  </h3>
+                  <div className="mt-5 space-y-4 text-sm leading-6 text-[#5f464f]">
+                    <div>
+                      <div className="mb-2 font-medium text-[#1a1218]">推薦髮色</div>
+                      <div className="flex flex-wrap gap-2.5">
+                        {profile.recommendations.hair_colors.map((item) => (
+                          <span key={item} className="rounded-full bg-[#fff8f2] px-3 py-2">{item}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-2 font-medium text-[#1a1218]">金屬與飾物</div>
+                      <div className="flex flex-wrap gap-2.5">
+                        {[...profile.recommendations.jewelry_metals, ...profile.recommendations.jewelry_styles].map((item) => (
+                          <span key={item} className="rounded-full bg-[#fff8f2] px-3 py-2">{item}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="tone-panel p-5 sm:p-6">
+                  <div className="tone-kicker">Daily Styling</div>
+                  <h3 className="mt-2 text-[24px] leading-none text-[#1a1218]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                    穿搭與小提醒
+                  </h3>
+                  <div className="mt-5 space-y-4">
+                    <div>
+                      <div className="mb-2 text-sm font-medium text-[#1a1218]">服裝色彩</div>
+                      <div className="flex flex-wrap gap-2.5">
+                        {profile.recommendations.clothing_colors.map((item) => (
+                          <span key={item} className="rounded-full bg-[#fff8f2] px-3 py-2 text-sm text-[#5f464f]">{item}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-2 text-sm font-medium text-[#1a1218]">整體小提醒</div>
+                      <div className="space-y-2">
+                        {profile.recommendations.quick_tips.map((tip) => (
+                          <div key={tip} className="rounded-[18px] bg-[#fffdfc] p-3 text-sm leading-6 text-[#5f464f]">
+                            {tip}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </>
+            )}
+
             <section className="tone-panel p-5 sm:p-6">
               <div className="tone-kicker">Reading Notes</div>
               <div className="mt-4 space-y-3">
@@ -996,6 +1258,8 @@ export default function SkinToneClient({
                   ['問卷線索', `靜脈：${veinColor === 'blue_purple' ? '藍 / 紫' : veinColor === 'green' ? '綠色' : veinColor === 'unclear' ? '不確定' : '未提供'}`],
                   ['飾物偏好', jewelryPref === 'gold' ? '金色更襯' : jewelryPref === 'silver' ? '銀色更襯' : jewelryPref === 'both' ? '兩者都可以' : '未提供'],
                   ['自評底色', undertonePref ? (undertonePref === 'yellow' ? '黃調' : undertonePref === 'pink' ? '粉紅調' : undertonePref === 'olive' ? '橄欖 / 灰綠調' : '唔確定') : '未提供'],
+                  ['對比感', contrastPref === 'soft' ? '偏柔和' : contrastPref === 'balanced' ? '中等平衡' : contrastPref === 'high' ? '對比感高' : '未提供'],
+                  ['曬後反應', sunReaction === 'burns_easy' ? '容易泛紅 / 曬傷' : sunReaction === 'tan_easy' ? '容易曬成啡金色' : sunReaction === 'both' ? '兩種都會' : sunReaction === 'unclear' ? '不確定' : '未提供'],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-[22px] bg-[#fffdfc] p-4">
                     <div className="text-[11px] uppercase tracking-[0.2em] text-[#9b7e86]">{label}</div>
