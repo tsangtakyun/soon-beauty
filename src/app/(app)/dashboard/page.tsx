@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { Award, Camera, Cog, Palette, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { formatDaysLabel, getExpiryStatus, STATUS_COLORS } from '@/lib/utils';
-import type { Product, ProductWithExpiry, RecentMakeupLog } from '@/types/database';
+import type { Product, ProductPanLog, ProductWithExpiry, RecentMakeupLog } from '@/types/database';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -20,6 +20,7 @@ export default async function DashboardPage() {
     { data: latestProducts },
     { data: watchlistProducts },
     { data: recentMakeupLogs },
+    { data: panLogsData },
   ] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase.rpc('user_product_stats', { target_user_id: user.id }),
@@ -56,6 +57,11 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1),
+    supabase
+      .from('product_pan_logs')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('logged_date', { ascending: false }),
   ]);
 
   const stats = statsData?.[0] ?? {
@@ -72,12 +78,23 @@ export default async function DashboardPage() {
   const newlyAddedProducts = (latestProducts as Product[] | null) ?? [];
   const watchlist = (watchlistProducts as Product[] | null) ?? [];
   const recentMakeup = (recentMakeupLogs?.[0] as RecentMakeupLog | undefined) ?? null;
+  const panLogs = (panLogsData as ProductPanLog[] | null) ?? [];
 
   const finishedWatchlistCount = watchlist.filter((product) => product.status === 'finished').length;
   const activeWatchlistCount = watchlist.filter((product) => product.status !== 'finished').length;
   const makeupProducts = recentMakeup
     ? allProducts.filter((product) => recentMakeup.used_product_ids.includes(product.id))
     : [];
+  const panMonthSets = new Map<string, Set<string>>();
+  panLogs.forEach((log) => {
+    const existing = panMonthSets.get(log.product_id) ?? new Set<string>();
+    existing.add(log.month_key);
+    panMonthSets.set(log.product_id, existing);
+  });
+
+  const panMonthsByProduct = Object.fromEntries(
+    Array.from(panMonthSets.entries()).map(([productId, months]) => [productId, months.size])
+  ) as Record<string, number>;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -265,7 +282,12 @@ export default async function DashboardPage() {
 
         <div className="space-y-2">
           {watchlist.filter((product) => product.status !== 'finished').slice(0, 3).map((product) => (
-            <SimpleProductRow key={product.id} product={product} eyebrow="鐵皮清單" />
+            <SimpleProductRow
+              key={product.id}
+              product={product}
+              eyebrow={`鐵皮清單 · 已記錄 ${panMonthsByProduct[product.id] ?? 0} 個月`}
+              trailing={`${panMonthsByProduct[product.id] ?? 0} 個月`}
+            />
           ))}
           {watchlist.filter((product) => product.status !== 'finished').length === 0 && (
             <div className="fini-empty-state p-5">
@@ -366,9 +388,11 @@ function ProductRow({ product }: { product: ProductWithExpiry }) {
 function SimpleProductRow({
   product,
   eyebrow,
+  trailing,
 }: {
   product: Product;
   eyebrow?: string;
+  trailing?: string;
 }) {
   return (
     <Link href={`/products/${product.id}`} className="fini-product-row">
@@ -401,7 +425,7 @@ function SimpleProductRow({
         </div>
       </div>
       <span className="text-micro" style={{ color: '#9D8777' }}>
-        {new Date(product.created_at).toLocaleDateString('zh-HK')}
+        {trailing ?? new Date(product.created_at).toLocaleDateString('zh-HK')}
       </span>
     </Link>
   );

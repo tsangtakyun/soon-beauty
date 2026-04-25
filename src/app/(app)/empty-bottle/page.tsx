@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Award, Plus, Trophy, TrendingUp } from 'lucide-react';
 import EmptyBottleClient from '@/components/EmptyBottleClient';
-import type { Product } from '@/types/database';
+import type { Product, ProductPanLog } from '@/types/database';
 
 const MILESTONES = [1, 5, 10, 25, 50, 100];
 
@@ -47,6 +47,16 @@ export default async function EmptyBottlePage() {
     .in('status', ['in_use', 'unopened'])
     .order('name');
   const allActive = (inUse as Product[] | null) ?? [];
+
+  const { data: panLogsData } = await supabase
+    .from('product_pan_logs')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('logged_date', { ascending: false });
+
+  const panLogs = (panLogsData as ProductPanLog[] | null) ?? [];
+  const trackedProductIds = new Set(panLogs.map((log) => log.product_id));
+  const finishedTracked = bottles.filter((product) => trackedProductIds.has(product.id));
 
   // Milestone
   const { next: nextMilestone, latest: latestMilestone } = getMilestone(bottles.length);
@@ -139,6 +149,8 @@ export default async function EmptyBottlePage() {
         thisMonth={thisMonth}
         thisMonthSavings={thisMonthSavings}
         monthLabel={`${now.getFullYear()}年${now.getMonth() + 1}月`}
+        initialLogs={panLogs}
+        finishedTracked={finishedTracked}
       />
 
       {/* Finished bottles list */}

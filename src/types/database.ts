@@ -126,6 +126,28 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['recent_makeup_logs']['Insert']>;
       };
+      product_pan_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          product_id: string;
+          month_key: string;
+          logged_date: string;
+          photo_url: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          product_id: string;
+          month_key: string;
+          logged_date?: string;
+          photo_url?: string | null;
+          notes?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['product_pan_logs']['Insert']>;
+      };
     };
     Views: {
       products_with_expiry: {
@@ -208,13 +230,7 @@ export type ProductWithExpiry = Database['public']['Views']['products_with_expir
 export type Category = Database['public']['Tables']['categories']['Row'];
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type RecentMakeupLog = Database['public']['Tables']['recent_makeup_logs']['Row'];
-export type ProductLog = {
-  id: string;
-  user_id: string;
-  product_id: string;
-  logged_date: string;
-  created_at: string;
-};
+export type ProductPanLog = Database['public']['Tables']['product_pan_logs']['Row'];
 
 export type CategoryGroup = {
   parent: Category;
