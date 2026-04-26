@@ -1,6 +1,25 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import type { ColorProfile, Product } from '@/types/database';
+import type { ColorProfile, ColorSubtype, Product } from '@/types/database';
+
+const SUBTYPE_ENUM: ColorSubtype[] = [
+  'spring_light',
+  'spring_true',
+  'spring_bright',
+  'spring_warm',
+  'summer_light',
+  'summer_true',
+  'summer_soft',
+  'summer_cool',
+  'autumn_soft',
+  'autumn_true',
+  'autumn_deep',
+  'autumn_warm',
+  'winter_bright',
+  'winter_true',
+  'winter_deep',
+  'winter_cool',
+];
 
 const ANALYSIS_SCHEMA = {
   name: 'personal_color_report',
@@ -10,6 +29,7 @@ const ANALYSIS_SCHEMA = {
     additionalProperties: false,
     properties: {
       season: { type: 'string', enum: ['spring', 'summer', 'autumn', 'winter'] },
+      season_subtype: { type: 'string', enum: SUBTYPE_ENUM },
       season_confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
       warm_cool: { type: 'string', enum: ['warm', 'cool', 'neutral'] },
       skin_depth: { type: 'string', enum: ['fair', 'light', 'medium', 'tan', 'deep'] },
@@ -100,6 +120,7 @@ const ANALYSIS_SCHEMA = {
     },
     required: [
       'season',
+      'season_subtype',
       'season_confidence',
       'warm_cool',
       'skin_depth',
@@ -188,6 +209,7 @@ function buildPrompt(summary: string) {
     '分析要求：',
     '1. 如果有問卷答案，請以問卷答案優先，自拍負責校正與補足觀察；如果是快速 AI 分析模式，請只根據自然自拍做謹慎判斷，並在 notes 說明限制。',
     '2. 圖片是自然自拍，只能用於推斷膚色、明度、清晰度、對比感與整體氣質，不可捏造不存在的細節。',
+    '2.5. 除了四季主類別，請一定判斷到 16 型子類別（例如 light spring、soft summer、deep autumn、bright winter 等），並輸出對應 season_subtype。',
     '3. 請額外輸出 color_samples，至少包含：前額膚色、臉頰膚色、頸部膚色、自然髮色、瞳孔顏色、唇色；hex 請使用 #RRGGBB 格式。',
     '4. 所有推薦色與避開色請用繁體中文常用色名。',
     '5. suitable_shades 與 recommendations 要可以直接用於前端報告卡。',
@@ -204,6 +226,7 @@ function normalizeAnalysis(result: ColorAnalysisResult, selfieUrl: string | null
   return {
     analysis_method: undefined,
     season: result.season,
+    season_subtype: result.season_subtype,
     warm_cool: result.warm_cool,
     skin_depth: result.skin_depth,
     undertone: result.undertone,

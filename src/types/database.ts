@@ -43,9 +43,30 @@ export type ColorRecommendations = {
   quick_tips: string[];
 };
 
+export type ColorSeason = 'spring' | 'summer' | 'autumn' | 'winter';
+
+export type ColorSubtype =
+  | 'spring_light'
+  | 'spring_true'
+  | 'spring_bright'
+  | 'spring_warm'
+  | 'summer_light'
+  | 'summer_true'
+  | 'summer_soft'
+  | 'summer_cool'
+  | 'autumn_soft'
+  | 'autumn_true'
+  | 'autumn_deep'
+  | 'autumn_warm'
+  | 'winter_bright'
+  | 'winter_true'
+  | 'winter_deep'
+  | 'winter_cool';
+
 export type ColorProfile = {
   analysis_method?: 'guided' | 'quick';
-  season: 'spring' | 'summer' | 'autumn' | 'winter';
+  season: ColorSeason;
+  season_subtype?: ColorSubtype;
   warm_cool: 'warm' | 'cool' | 'neutral';
   skin_depth: 'fair' | 'light' | 'medium' | 'tan' | 'deep';
   undertone: 'yellow' | 'pink' | 'olive' | 'neutral';

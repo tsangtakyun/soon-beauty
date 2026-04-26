@@ -14,7 +14,7 @@ import {
   Upload,
   XCircle,
 } from 'lucide-react';
-import type { ColorProfile, Product } from '@/types/database';
+import type { ColorProfile, ColorSubtype, Product } from '@/types/database';
 
 type SuitableShades = ColorProfile['suitable_shades'];
 type AnalysisResult = ColorProfile & {
@@ -91,6 +91,105 @@ const SEASON_CONFIG: Record<ColorProfile['season'], {
     ink: '#314b8d',
     border: '#c7d4f1',
     accent: '#6387e6',
+  },
+};
+
+const SUBTYPE_CONFIG: Record<ColorSubtype, { label: string; english: string; short: string; summary: string }> = {
+  spring_light: {
+    label: '淺春型',
+    english: 'Light Spring',
+    short: '淺春',
+    summary: '明亮輕盈、偏奶杏與透亮暖色，整體感覺清新柔和。',
+  },
+  spring_true: {
+    label: '正春型',
+    english: 'True Spring',
+    short: '正春',
+    summary: '典型暖春，最適合清透鮮活而帶暖意的色彩。',
+  },
+  spring_bright: {
+    label: '亮春型',
+    english: 'Bright Spring',
+    short: '亮春',
+    summary: '明亮度高而充滿活力，適合乾淨鮮明的亮暖色。',
+  },
+  spring_warm: {
+    label: '暖春型',
+    english: 'Warm Spring',
+    short: '暖春',
+    summary: '暖感最為突出，奶茶金橘與蜜桃杏色通常最能提亮氣色。',
+  },
+  summer_light: {
+    label: '淺夏型',
+    english: 'Light Summer',
+    short: '淺夏',
+    summary: '色感偏淡、通透而柔和，最適合低飽和度的輕柔冷色。',
+  },
+  summer_true: {
+    label: '正夏型',
+    english: 'True Summer',
+    short: '正夏',
+    summary: '冷感與柔和度平衡，整體最適合霧感粉、灰藍與藕紫色系。',
+  },
+  summer_soft: {
+    label: '柔夏型',
+    english: 'Soft Summer',
+    short: '柔夏',
+    summary: '柔和灰霧感最為明顯，呈現文靜、細膩而高級的氣質。',
+  },
+  summer_cool: {
+    label: '冷夏型',
+    english: 'Cool Summer',
+    short: '冷夏',
+    summary: '冷感較強，灰粉、冷紫與藍調色會更顯清透。',
+  },
+  autumn_soft: {
+    label: '柔秋型',
+    english: 'Soft Autumn',
+    short: '柔秋',
+    summary: '低飽和暖色中帶灰感，最適合柔霧大地色與奶茶色系。',
+  },
+  autumn_true: {
+    label: '正秋型',
+    english: 'True Autumn',
+    short: '正秋',
+    summary: '典型暖秋，焦糖、南瓜與橄欖綠最具成熟質感。',
+  },
+  autumn_deep: {
+    label: '深秋型',
+    english: 'Deep Autumn',
+    short: '深秋',
+    summary: '深沉濃郁感明顯，咖啡、酒紅與深橄欖色更能展現氣場。',
+  },
+  autumn_warm: {
+    label: '暖秋型',
+    english: 'Warm Autumn',
+    short: '暖秋',
+    summary: '暖度最高，最適合金棕、琥珀與暖磚橙色調。',
+  },
+  winter_bright: {
+    label: '亮冬型',
+    english: 'Bright Winter',
+    short: '亮冬',
+    summary: '高對比而高清晰度，鮮明冷色會令氣質更顯俐落。',
+  },
+  winter_true: {
+    label: '正冬型',
+    english: 'True Winter',
+    short: '正冬',
+    summary: '冷感純淨而清晰，黑白、藍紅等高對比色通常最能襯托氣質。',
+  },
+  winter_deep: {
+    label: '深冬型',
+    english: 'Deep Winter',
+    short: '深冬',
+    summary: '深邃感最強，適合深莓果、墨藍與深酒紅等色彩。',
+  },
+  winter_cool: {
+    label: '冷冬型',
+    english: 'Cool Winter',
+    short: '冷冬',
+    summary: '氣質偏冷冽清透，藍調玫瑰、冷紫灰與冰感色會更為和諧。',
   },
 };
 
@@ -209,6 +308,21 @@ function getSunHint(pref: SunReaction | null) {
 
 function getQuestionProgress(stage: Exclude<Stage, 'landing' | 'analyzing' | 'result'>) {
   return Math.round((STAGE_INDEX[stage] / 6) * 100);
+}
+
+function getSubtypeLabel(subtype: ColorSubtype) {
+  return SUBTYPE_CONFIG[subtype].label;
+}
+
+function getFallbackSubtype(season: ColorProfile['season']): ColorSubtype {
+  return (
+    {
+      spring: 'spring_true',
+      summer: 'summer_true',
+      autumn: 'autumn_true',
+      winter: 'winter_true',
+    } as const
+  )[season];
 }
 
 function QuestionShell({
@@ -633,13 +747,14 @@ export default function SkinToneClient({
     setDemoLoading(true);
     setDemoError(null);
 
-    try {
+  try {
+      const subtypeKey = profile.season_subtype ?? getFallbackSubtype(profile.season);
       const response = await fetch('/api/skin-tone/generate-demo-cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           selfieUrl: profile.selfie_url,
-          seasonLabel: SEASON_CONFIG[profile.season].label,
+          seasonLabel: `${SEASON_CONFIG[profile.season].label} · ${getSubtypeLabel(subtypeKey)}`,
           goodColors: profile.recommendations?.best_colors ?? Object.values(profile.suitable_shades).flat(),
           badColors: profile.recommendations?.avoid_colors ?? profile.avoid_shades,
         }),
@@ -1088,10 +1203,12 @@ export default function SkinToneClient({
 
   if (stage === 'result' && profile) {
     const config = SEASON_CONFIG[profile.season];
+    const subtypeKey = profile.season_subtype ?? getFallbackSubtype(profile.season);
+    const subtype = SUBTYPE_CONFIG[subtypeKey];
     const latestResult = result ?? {
       ...profile,
       season_confidence: profile.season_confidence ?? 'medium',
-      overall_impression: profile.overall_impression ?? `你嘅整體氣質最適合走 ${config.short} 色板。`,
+      overall_impression: profile.overall_impression ?? `整體氣質最適合以 ${subtype.short} 色板作為主要方向。`,
       celebrity_references: profile.celebrity_references ?? [],
       key_traits: profile.key_traits ?? [],
       notes: profile.notes ?? '分析結果已同步到你的色彩檔案。',
@@ -1143,11 +1260,17 @@ export default function SkinToneClient({
                 <div className="mt-3 inline-flex items-center gap-3 rounded-full border border-white/60 bg-white/70 px-4 py-2 text-sm font-medium text-[#1a1218] backdrop-blur-sm">
                   <span className="text-xl">{config.emoji}</span>
                   {config.label}
+                  <span className="rounded-full bg-[#f7f1ff] px-3 py-1 text-xs text-[#6f5ab0]">
+                    {subtype.label}
+                  </span>
                   <span className="rounded-full bg-white px-3 py-1 text-xs text-[#7a6068]">{CONFIDENCE_LABELS[latestResult.season_confidence]}</span>
                 </div>
 
                 <h2 className="tone-display tone-display-compact mt-4 max-w-xl">{latestResult.overall_impression}</h2>
                 <p className="tone-body mt-5 max-w-xl">{profile.season_description}</p>
+                <p className="mt-3 max-w-xl text-sm leading-7 text-[#7a6068]">
+                  {subtype.english} · {subtype.summary}
+                </p>
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
@@ -1190,6 +1313,11 @@ export default function SkinToneClient({
           <div className="mt-5 space-y-4">
             <div className="rounded-[26px] border border-[#eee3e1] bg-[#fffdfc] p-5 text-sm leading-7 text-[#5f464f]">
               {profile.season_description}
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ResultTag label="四季主類別" value={config.short} />
+              <ResultTag label="16 型子類別" value={`${subtype.label} · ${subtype.english}`} />
             </div>
 
             {latestResult.key_traits?.length ? (

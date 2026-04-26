@@ -42,6 +42,23 @@ type IngredientsResult = {
 
 type ColorProfile = {
   season: 'spring' | 'summer' | 'autumn' | 'winter';
+  season_subtype?:
+    | 'spring_light'
+    | 'spring_true'
+    | 'spring_bright'
+    | 'spring_warm'
+    | 'summer_light'
+    | 'summer_true'
+    | 'summer_soft'
+    | 'summer_cool'
+    | 'autumn_soft'
+    | 'autumn_true'
+    | 'autumn_deep'
+    | 'autumn_warm'
+    | 'winter_bright'
+    | 'winter_true'
+    | 'winter_deep'
+    | 'winter_cool';
   warm_cool: 'warm' | 'cool' | 'neutral';
   suitable_shades: string[];
 } | null;
